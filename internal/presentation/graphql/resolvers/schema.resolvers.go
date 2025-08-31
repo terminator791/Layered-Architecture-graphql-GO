@@ -6,14 +6,150 @@ package resolvers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/domain/models"
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/presentation/graphql/generated"
 )
 
+// ReactionCount is the resolver for the reactionCount field.
+func (r *messageResolver) ReactionCount(ctx context.Context, obj *models.Message) ([]*generated.ReactionCount, error) {
+	panic(fmt.Errorf("not implemented: ReactionCount - reactionCount"))
+}
+
+// Register is the resolver for the register field.
+func (r *mutationResolver) Register(ctx context.Context, input models.CreateUserInput) (*models.AuthPayload, error) {
+	panic(fmt.Errorf("not implemented: Register - register"))
+}
+
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (*models.AuthPayload, error) {
+	panic(fmt.Errorf("not implemented: Login - login"))
+}
+
+// Logout is the resolver for the logout field.
+func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
+	panic(fmt.Errorf("not implemented: Logout - logout"))
+}
+
+// UpdateUser is the resolver for the updateUser field.
+func (r *mutationResolver) UpdateUser(ctx context.Context, input models.UpdateUserInput) (*models.User, error) {
+	panic(fmt.Errorf("not implemented: UpdateUser - updateUser"))
+}
+
+// UpdateUserStatus is the resolver for the updateUserStatus field.
+func (r *mutationResolver) UpdateUserStatus(ctx context.Context, status models.UserStatus) (*models.User, error) {
+	panic(fmt.Errorf("not implemented: UpdateUserStatus - updateUserStatus"))
+}
+
+// DeleteUser is the resolver for the deleteUser field.
+func (r *mutationResolver) DeleteUser(ctx context.Context) (bool, error) {
+	panic(fmt.Errorf("not implemented: DeleteUser - deleteUser"))
+}
+
+// CreateRoom is the resolver for the createRoom field.
+func (r *mutationResolver) CreateRoom(ctx context.Context, input models.CreateRoomInput) (*models.Room, error) {
+	panic(fmt.Errorf("not implemented: CreateRoom - createRoom"))
+}
+
+// UpdateRoom is the resolver for the updateRoom field.
+func (r *mutationResolver) UpdateRoom(ctx context.Context, roomID string, input models.UpdateRoomInput) (*models.Room, error) {
+	panic(fmt.Errorf("not implemented: UpdateRoom - updateRoom"))
+}
+
+// DeleteRoom is the resolver for the deleteRoom field.
+func (r *mutationResolver) DeleteRoom(ctx context.Context, roomID string) (bool, error) {
+	panic(fmt.Errorf("not implemented: DeleteRoom - deleteRoom"))
+}
+
+// JoinRoom is the resolver for the joinRoom field.
+func (r *mutationResolver) JoinRoom(ctx context.Context, input models.JoinRoomInput) (*models.RoomMember, error) {
+	panic(fmt.Errorf("not implemented: JoinRoom - joinRoom"))
+}
+
+// LeaveRoom is the resolver for the leaveRoom field.
+func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, error) {
+	panic(fmt.Errorf("not implemented: LeaveRoom - leaveRoom"))
+}
+
+// UpdateRoomMember is the resolver for the updateRoomMember field.
+func (r *mutationResolver) UpdateRoomMember(ctx context.Context, input models.UpdateRoomMemberInput) (*models.RoomMember, error) {
+	panic(fmt.Errorf("not implemented: UpdateRoomMember - updateRoomMember"))
+}
+
+// KickRoomMember is the resolver for the kickRoomMember field.
+func (r *mutationResolver) KickRoomMember(ctx context.Context, roomID string, userID string) (bool, error) {
+	panic(fmt.Errorf("not implemented: KickRoomMember - kickRoomMember"))
+}
+
 // SendMessage is the resolver for the sendMessage field.
 func (r *mutationResolver) SendMessage(ctx context.Context, input models.CreateMessageInput) (*models.Message, error) {
 	return r.MessageService.CreateMessage(ctx, &input)
+}
+
+// SendMessageToRoom is the resolver for the sendMessageToRoom field.
+func (r *mutationResolver) SendMessageToRoom(ctx context.Context, roomID string, text string, messageType *models.MessageType, replyToID *string, metadata *generated.MessageMetadataInput) (*models.Message, error) {
+	panic(fmt.Errorf("not implemented: SendMessageToRoom - sendMessageToRoom"))
+}
+
+// UpdateMessage is the resolver for the updateMessage field.
+func (r *mutationResolver) UpdateMessage(ctx context.Context, input models.UpdateMessageInput) (*models.Message, error) {
+	panic(fmt.Errorf("not implemented: UpdateMessage - updateMessage"))
+}
+
+// DeleteMessage is the resolver for the deleteMessage field.
+func (r *mutationResolver) DeleteMessage(ctx context.Context, messageID string) (bool, error) {
+	panic(fmt.Errorf("not implemented: DeleteMessage - deleteMessage"))
+}
+
+// AddReaction is the resolver for the addReaction field.
+func (r *mutationResolver) AddReaction(ctx context.Context, input models.AddReactionInput) (*models.MessageReaction, error) {
+	panic(fmt.Errorf("not implemented: AddReaction - addReaction"))
+}
+
+// RemoveReaction is the resolver for the removeReaction field.
+func (r *mutationResolver) RemoveReaction(ctx context.Context, input models.RemoveReactionInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: RemoveReaction - removeReaction"))
+}
+
+// StartTyping is the resolver for the startTyping field.
+func (r *mutationResolver) StartTyping(ctx context.Context, input models.StartTypingInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: StartTyping - startTyping"))
+}
+
+// StopTyping is the resolver for the stopTyping field.
+func (r *mutationResolver) StopTyping(ctx context.Context, input models.StopTypingInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: StopTyping - stopTyping"))
+}
+
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*models.User, error) {
+	panic(fmt.Errorf("not implemented: Me - me"))
+}
+
+// User is the resolver for the user field.
+func (r *queryResolver) User(ctx context.Context, id string) (*models.User, error) {
+	panic(fmt.Errorf("not implemented: User - user"))
+}
+
+// Users is the resolver for the users field.
+func (r *queryResolver) Users(ctx context.Context, limit *int, offset *int) ([]*models.User, error) {
+	panic(fmt.Errorf("not implemented: Users - users"))
+}
+
+// Room is the resolver for the room field.
+func (r *queryResolver) Room(ctx context.Context, id string) (*models.Room, error) {
+	panic(fmt.Errorf("not implemented: Room - room"))
+}
+
+// Rooms is the resolver for the rooms field.
+func (r *queryResolver) Rooms(ctx context.Context, limit *int, offset *int) ([]*models.Room, error) {
+	panic(fmt.Errorf("not implemented: Rooms - rooms"))
+}
+
+// MyRooms is the resolver for the myRooms field.
+func (r *queryResolver) MyRooms(ctx context.Context) ([]*models.Room, error) {
+	panic(fmt.Errorf("not implemented: MyRooms - myRooms"))
 }
 
 // Messages is the resolver for the messages field.
@@ -21,10 +157,98 @@ func (r *queryResolver) Messages(ctx context.Context, room string) ([]*models.Me
 	return r.MessageService.GetMessagesByRoom(ctx, room)
 }
 
+// MessagesByRoom is the resolver for the messagesByRoom field.
+func (r *queryResolver) MessagesByRoom(ctx context.Context, roomID string, limit *int, offset *int) ([]*models.Message, error) {
+	panic(fmt.Errorf("not implemented: MessagesByRoom - messagesByRoom"))
+}
+
+// Message is the resolver for the message field.
+func (r *queryResolver) Message(ctx context.Context, id string) (*models.Message, error) {
+	panic(fmt.Errorf("not implemented: Message - message"))
+}
+
+// SearchMessages is the resolver for the searchMessages field.
+func (r *queryResolver) SearchMessages(ctx context.Context, query string, roomID *string, limit *int, offset *int) ([]*models.Message, error) {
+	panic(fmt.Errorf("not implemented: SearchMessages - searchMessages"))
+}
+
 // MessageAdded is the resolver for the messageAdded field.
 func (r *subscriptionResolver) MessageAdded(ctx context.Context, room string) (<-chan *models.Message, error) {
 	return r.MessageService.SubscribeToRoom(ctx, room)
 }
+
+// MessageAddedToRoom is the resolver for the messageAddedToRoom field.
+func (r *subscriptionResolver) MessageAddedToRoom(ctx context.Context, roomID string) (<-chan *models.Message, error) {
+	panic(fmt.Errorf("not implemented: MessageAddedToRoom - messageAddedToRoom"))
+}
+
+// MessageUpdated is the resolver for the messageUpdated field.
+func (r *subscriptionResolver) MessageUpdated(ctx context.Context, roomID string) (<-chan *models.Message, error) {
+	panic(fmt.Errorf("not implemented: MessageUpdated - messageUpdated"))
+}
+
+// MessageDeleted is the resolver for the messageDeleted field.
+func (r *subscriptionResolver) MessageDeleted(ctx context.Context, roomID string) (<-chan *models.Message, error) {
+	panic(fmt.Errorf("not implemented: MessageDeleted - messageDeleted"))
+}
+
+// ReactionAdded is the resolver for the reactionAdded field.
+func (r *subscriptionResolver) ReactionAdded(ctx context.Context, roomID string) (<-chan *models.MessageReaction, error) {
+	panic(fmt.Errorf("not implemented: ReactionAdded - reactionAdded"))
+}
+
+// ReactionRemoved is the resolver for the reactionRemoved field.
+func (r *subscriptionResolver) ReactionRemoved(ctx context.Context, roomID string) (<-chan *models.MessageReaction, error) {
+	panic(fmt.Errorf("not implemented: ReactionRemoved - reactionRemoved"))
+}
+
+// UserStatusChanged is the resolver for the userStatusChanged field.
+func (r *subscriptionResolver) UserStatusChanged(ctx context.Context, roomID string) (<-chan *models.User, error) {
+	panic(fmt.Errorf("not implemented: UserStatusChanged - userStatusChanged"))
+}
+
+// TypingStarted is the resolver for the typingStarted field.
+func (r *subscriptionResolver) TypingStarted(ctx context.Context, roomID string) (<-chan *models.TypingIndicator, error) {
+	panic(fmt.Errorf("not implemented: TypingStarted - typingStarted"))
+}
+
+// TypingStopped is the resolver for the typingStopped field.
+func (r *subscriptionResolver) TypingStopped(ctx context.Context, roomID string) (<-chan *models.TypingIndicator, error) {
+	panic(fmt.Errorf("not implemented: TypingStopped - typingStopped"))
+}
+
+// RoomMemberJoined is the resolver for the roomMemberJoined field.
+func (r *subscriptionResolver) RoomMemberJoined(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
+	panic(fmt.Errorf("not implemented: RoomMemberJoined - roomMemberJoined"))
+}
+
+// RoomMemberLeft is the resolver for the roomMemberLeft field.
+func (r *subscriptionResolver) RoomMemberLeft(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
+	panic(fmt.Errorf("not implemented: RoomMemberLeft - roomMemberLeft"))
+}
+
+// RoomMemberUpdated is the resolver for the roomMemberUpdated field.
+func (r *subscriptionResolver) RoomMemberUpdated(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
+	panic(fmt.Errorf("not implemented: RoomMemberUpdated - roomMemberUpdated"))
+}
+
+// RoomUpdated is the resolver for the roomUpdated field.
+func (r *subscriptionResolver) RoomUpdated(ctx context.Context, roomID string) (<-chan *models.Room, error) {
+	panic(fmt.Errorf("not implemented: RoomUpdated - roomUpdated"))
+}
+
+// Metadata is the resolver for the metadata field.
+func (r *sendMessageInputResolver) Metadata(ctx context.Context, obj *models.CreateMessageInput, data *generated.MessageMetadataInput) error {
+	panic(fmt.Errorf("not implemented: Metadata - metadata"))
+}
+
+// Metadata is the resolver for the metadata field.
+func (r *updateMessageInputResolver) Metadata(ctx context.Context, obj *models.UpdateMessageInput, data *generated.MessageMetadataInput) error {
+	panic(fmt.Errorf("not implemented: Metadata - metadata"))
+}
+
+// Message returns generated.MessageResolver implementation.
+func (r *Resolver) Message() generated.MessageResolver { return &messageResolver{r} }
 
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
@@ -35,6 +259,19 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 // Subscription returns generated.SubscriptionResolver implementation.
 func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
 
+// SendMessageInput returns generated.SendMessageInputResolver implementation.
+func (r *Resolver) SendMessageInput() generated.SendMessageInputResolver {
+	return &sendMessageInputResolver{r}
+}
+
+// UpdateMessageInput returns generated.UpdateMessageInputResolver implementation.
+func (r *Resolver) UpdateMessageInput() generated.UpdateMessageInputResolver {
+	return &updateMessageInputResolver{r}
+}
+
+type messageResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
+type sendMessageInputResolver struct{ *Resolver }
+type updateMessageInputResolver struct{ *Resolver }
