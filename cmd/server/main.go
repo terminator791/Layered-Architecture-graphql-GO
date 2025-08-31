@@ -58,11 +58,18 @@ func main() {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
-	// Initialize dependencies
+	// Initialize repositories
 	messageRepo := repository.NewPostgresMessageRepository(db)
+	userRepo := repository.NewPostgresUserRepository(db)
+	roomRepo := repository.NewPostgresRoomRepository(db)
+	typingRepo := repository.NewPostgresTypingRepository(db)
+	
+	// Initialize Redis pub/sub
 	redisPublisher := redisInfra.NewRedisPublisher(redisClient)
 	redisSubscriber := redisInfra.NewRedisSubscriber(redisClient)
-	messageService := service.NewMessageService(messageRepo, redisPublisher, redisSubscriber)
+	
+	// Initialize services
+	messageService := service.NewMessageService(messageRepo, roomRepo, userRepo, typingRepo, redisPublisher, redisSubscriber)
 
 	// Initialize GraphQL resolver
 	resolver := &resolvers.Resolver{
