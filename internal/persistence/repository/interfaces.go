@@ -39,6 +39,12 @@ type MessageRepository interface {
 	
 	// Get reaction counts for message
 	GetReactionCounts(ctx context.Context, messageID string) (map[string]int, error)
+	
+	// Thread operations
+	StartThread(ctx context.Context, messageID, userID string) (*models.Message, error)
+	GetThreadReplies(ctx context.Context, threadID string, limit, offset int) ([]*models.Message, error)
+	GetThreadCount(ctx context.Context, threadID string) (int, error)
+	MarkAsThreadRoot(ctx context.Context, messageID string) error
 }
 
 // UserRepository defines the interface for user data access

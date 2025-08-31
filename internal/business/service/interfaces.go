@@ -33,4 +33,9 @@ type MessageService interface {
 	StartTyping(ctx context.Context, userID string, input *models.StartTypingInput) error
 	StopTyping(ctx context.Context, userID string, input *models.StopTypingInput) error
 	GetTypingUsers(ctx context.Context, roomID string) ([]*models.TypingIndicator, error)
+	
+	// Thread operations
+	StartThread(ctx context.Context, userID string, input *models.StartThreadInput) (*models.Message, error)
+	ReplyToThread(ctx context.Context, userID string, input *models.ReplyToThreadInput) (*models.Message, error)
+	GetThreadReplies(ctx context.Context, threadID string, limit, offset int) ([]*models.Message, error)
 }
