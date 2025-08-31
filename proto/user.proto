@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/terminator791/Layered-Architecture-graphql-GO/pkg/grpc/user";
+
+// User represents a user in the system
+message User {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  int64 created_at = 4;
+}
+
+// GetUserRequest is the request message for GetUser
+message GetUserRequest {
+  string id = 1;
+}
+
+// GetUserResponse is the response message for GetUser
+message GetUserResponse {
+  User user = 1;
+}
+
+// CreateUserRequest is the request message for CreateUser
+message CreateUserRequest {
+  string email = 1;
+  string name = 2;
+}
+
+// CreateUserResponse is the response message for CreateUser
+message CreateUserResponse {
+  User user = 1;
+}
+
+// UserService provides user management operations
+service UserService {
+  // GetUser retrieves a user by ID
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  
+  // CreateUser creates a new user
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+}
