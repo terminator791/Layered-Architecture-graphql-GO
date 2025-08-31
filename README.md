@@ -1,6 +1,62 @@
-# Real-Time Chat Application with Layered Architecture
+# Advanced Real-Time Chat Application with Layered Architecture
 
-A complete Go application implementing a classic **Layered Architecture** pattern with GraphQL API and Redis Pub/Sub for real-time messaging. This project demonstrates clean architecture principles, proper separation of concerns, and modern Go development practices.
+A comprehensive, production-ready real-time chat application built with Go, GraphQL, and Redis. This application showcases modern software architecture patterns with extensive features for user management, room administration, advanced messaging, and real-time communication.
+
+## 🚀 Features
+
+### 🔐 User Management & Authentication
+- **User Registration & Login** with JWT authentication
+- **User Profiles** with avatars, display names, and bio
+- **User Status Management** (online, offline, away, busy)
+- **Secure Password Hashing** using bcrypt
+- **User Presence Tracking** with last seen timestamps
+
+### 🏠 Advanced Room Management
+- **Multiple Room Types**: Public, Private, and Direct message rooms
+- **Room Metadata**: Names, descriptions, avatars, and member limits
+- **Member Role System**: Admins, Moderators, and Members
+- **Password-Protected Rooms** for enhanced privacy
+- **Room Permissions**: Join/leave, kick members, update settings
+- **Real-time Member Counts** and online status tracking
+
+### 💬 Rich Messaging System
+- **Multiple Message Types**: Text, images, files, and system notifications
+- **Message Threading**: Reply to specific messages
+- **Message Editing & Deletion** with history tracking
+- **Message Reactions**: Emoji reactions with real-time counts
+- **Message Search**: Full-text search across rooms
+- **Rich Metadata Support**: Image dimensions, file information
+- **Soft Deletion**: Messages are archived, not permanently deleted
+
+### ⚡ Real-Time Features
+- **WebSocket Subscriptions** for instant message delivery
+- **Typing Indicators** showing who's currently typing
+- **User Presence Broadcasting** for online/offline status
+- **Live Room Statistics** (member counts, online users)
+- **Real-time Reactions** and message updates
+
+### 🏗️ Architecture & Technical Excellence
+- **Layered Architecture** with clear separation of concerns
+- **Domain-Driven Design** with rich domain models
+- **Repository Pattern** for data access abstraction
+- **Dependency Injection** for testable, maintainable code
+- **GraphQL API** with type-safe operations
+- **Redis Pub/Sub** for scalable real-time messaging
+- **PostgreSQL** with optimized indexes and relationships
+
+## 🛠️ Technology Stack
+
+| Component | Technology | Version | Purpose |
+|-----------|------------|---------|---------|
+| **Language** | Go | 1.21+ | Backend development |
+| **API Framework** | GraphQL (gqlgen) | v0.17.78 | Type-safe API |
+| **Database** | PostgreSQL | 15-alpine | Data persistence |
+| **Cache/Pub-Sub** | Redis | 7-alpine | Real-time messaging |
+| **Authentication** | JWT | v5.3.0 | Secure user auth |
+| **Password Hashing** | bcrypt | Latest | Secure passwords |
+| **Database Driver** | sqlx + pq | Latest | Database operations |
+| **Testing** | testify | Latest | Unit testing |
+| **Containerization** | Docker & Docker Compose | Latest | Deployment |
 
 ## 🏗️ Architecture Overview
 
@@ -9,214 +65,362 @@ This application follows a strict layered architecture with clear separation of 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Presentation Layer                       │
-│                  (GraphQL Resolvers)                       │
+│              (GraphQL Resolvers & Schema)                  │
 ├─────────────────────────────────────────────────────────────┤
 │                     Business Layer                         │
-│                   (Service Logic)                          │
+│           (Services, Domain Logic, Validation)             │
 ├─────────────────────────────────────────────────────────────┤
 │                   Persistence Layer                        │
-│                  (Repository Pattern)                      │
+│              (Repository Pattern & Interfaces)             │
 ├─────────────────────────────────────────────────────────────┤
 │                  Infrastructure Layer                      │
-│               (Database, Redis, Config)                    │
+│         (Database, Redis, JWT, External Services)          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### Layer Responsibilities
 
-- **Presentation Layer**: GraphQL schema, resolvers, and API endpoints
-- **Business Layer**: Core business logic, validation, and service orchestration
-- **Persistence Layer**: Data access abstractions and repository implementations
-- **Infrastructure Layer**: External dependencies (database, Redis, configuration)
-
-## 🚀 Features
-
-- **Real-time messaging** using GraphQL Subscriptions powered by Redis Pub/Sub
-- **Layered Architecture** with proper dependency injection
-- **GraphQL API** with Queries, Mutations, and Subscriptions
-- **PostgreSQL** for persistent message storage
-- **Redis Pub/Sub** for real-time message broadcasting
-- **Docker support** with multi-stage builds
-- **Comprehensive unit tests** with mocked dependencies
-- **Clean project structure** following Go best practices
-
-## 🛠️ Technology Stack
-
-| Component | Technology | Version |
-|-----------|------------|---------|
-| Language | Go | 1.21+ |
-| API Framework | GraphQL (gqlgen) | v0.17.78 |
-| Database | PostgreSQL | 15-alpine |
-| Cache/Pub-Sub | Redis | 7-alpine |
-| Database Driver | sqlx + pq | Latest |
-| Testing | testify | Latest |
-| Containerization | Docker & Docker Compose | Latest |
-
-## 📁 Project Structure
-
-```
-.
-├── cmd/
-│   └── server/                 # Application entry point
-│       └── main.go
-├── internal/
-│   ├── business/              # Business logic layer
-│   │   └── service/
-│   │       ├── interfaces.go
-│   │       ├── message_service.go
-│   │       └── message_service_test.go
-│   ├── config/                # Configuration management
-│   │   └── config.go
-│   ├── domain/                # Domain models
-│   │   └── models/
-│   │       └── message.go
-│   ├── infrastructure/        # External dependencies
-│   │   ├── database/
-│   │   │   └── postgres.go
-│   │   └── redis/
-│   │       ├── interfaces.go
-│   │       └── redis_pubsub.go
-│   ├── mocks/                 # Test mocks
-│   │   ├── redis_mock.go
-│   │   └── repository_mock.go
-│   ├── persistence/           # Data access layer
-│   │   └── repository/
-│   │       ├── interfaces.go
-│   │       └── postgres_message_repository.go
-│   └── presentation/          # API layer
-│       └── graphql/
-│           ├── generated/     # Generated GraphQL code
-│           ├── resolvers/     # GraphQL resolvers
-│           └── schema/        # GraphQL schema definition
-├── migrations/                # Database migrations
-├── docker-compose.yml         # Docker services configuration
-├── Dockerfile                 # Application container
-├── gqlgen.yml                # GraphQL code generation config
-├── go.mod                    # Go module definition
-└── README.md                 # This file
-```
-
-## 🔄 Real-Time Flow
-
-The application implements a complete real-time messaging flow:
-
-1. **Client sends mutation**: `sendMessage(room: "general", user: "john", text: "Hello!")`
-2. **Presentation Layer**: GraphQL resolver receives the request
-3. **Business Layer**: Validates input and calls repository to save message
-4. **Persistence Layer**: Saves message to PostgreSQL database
-5. **Business Layer**: Publishes message to Redis channel `chat_room:general`
-6. **Real-time Distribution**: Redis Pub/Sub broadcasts to all subscribers
-7. **GraphQL Subscription**: Active subscribers receive the new message instantly
-
-## 🎯 GraphQL API
-
-### Mutations
-
-```graphql
-# Send a new message to a chat room
-mutation SendMessage {
-  sendMessage(input: {
-    room: "general"
-    user: "john_doe"
-    text: "Hello, everyone!"
-  }) {
-    id
-    room
-    user
-    text
-    createdAt
-  }
-}
-```
-
-### Queries
-
-```graphql
-# Get all messages for a specific room
-query GetMessages {
-  messages(room: "general") {
-    id
-    room
-    user
-    text
-    createdAt
-  }
-}
-```
-
-### Subscriptions
-
-```graphql
-# Subscribe to real-time messages in a room
-subscription MessageAdded {
-  messageAdded(room: "general") {
-    id
-    room
-    user
-    text
-    createdAt
-  }
-}
-```
+- **Presentation Layer**: GraphQL schema, resolvers, input validation, and API endpoints
+- **Business Layer**: Core business logic, domain rules, service orchestration, and validation
+- **Persistence Layer**: Data access abstractions, repository implementations, and data mapping
+- **Infrastructure Layer**: External dependencies (database, Redis, JWT, configuration)
 
 ## 🏃‍♂️ Quick Start
 
 ### Prerequisites
 
+- Go 1.21 or higher
 - Docker and Docker Compose
-- Go 1.21+ (for local development)
+- PostgreSQL 15+ (if running locally)
+- Redis 7+ (if running locally)
 
 ### Using Docker (Recommended)
 
-1. **Clone the repository**
+1. **Clone the repository**:
    ```bash
    git clone https://github.com/terminator791/Layered-Architecture-graphql-GO.git
    cd Layered-Architecture-graphql-GO
    ```
 
-2. **Start all services**
+2. **Start the application**:
    ```bash
-   docker-compose up --build
+   docker-compose up -d
    ```
 
-3. **Access the application**
-   - GraphQL Playground: http://localhost:8080
-   - GraphQL API Endpoint: http://localhost:8080/query
+3. **Access the application**:
+   - GraphQL Playground: http://localhost:8080/
+   - GraphQL API: http://localhost:8080/query
 
 ### Local Development
 
-1. **Install dependencies**
-   ```bash
-   go mod download
-   ```
-
-2. **Start PostgreSQL and Redis**
-   ```bash
-   docker-compose up postgres redis -d
-   ```
-
-3. **Set environment variables**
+1. **Setup environment variables**:
    ```bash
    export DB_HOST=localhost
    export DB_PORT=5432
-   export DB_USER=postgres
-   export DB_PASSWORD=postgres
+   export DB_USER=chatuser
+   export DB_PASSWORD=chatpass
    export DB_NAME=chatdb
    export REDIS_HOST=localhost
    export REDIS_PORT=6379
-   export SERVER_PORT=8080
+   export JWT_SECRET=your-super-secret-jwt-key
    ```
 
-4. **Run the application**
+2. **Run database migrations**:
+   ```bash
+   # Database will be created automatically on first run
+   go run cmd/server/main.go
+   ```
+
+3. **Start the server**:
    ```bash
    go run cmd/server/main.go
    ```
 
+## 🎯 GraphQL API
+
+### 🔐 Authentication Operations
+
+```graphql
+# Register a new user
+mutation Register {
+  register(input: {
+    username: "john_doe"
+    email: "john@example.com"
+    password: "securepassword"
+    displayName: "John Doe"
+    bio: "Software developer"
+  }) {
+    token
+    user {
+      id
+      username
+      email
+      displayName
+      status
+      createdAt
+    }
+  }
+}
+
+# Login existing user
+mutation Login {
+  login(input: {
+    username: "john_doe"
+    password: "securepassword"
+  }) {
+    token
+    user {
+      id
+      username
+      status
+      lastSeenAt
+    }
+  }
+}
+```
+
+### 🏠 Room Management
+
+```graphql
+# Create a new room
+mutation CreateRoom {
+  createRoom(input: {
+    name: "Tech Discussions"
+    description: "General technology discussions"
+    roomType: PUBLIC
+    maxMembers: 100
+  }) {
+    id
+    name
+    description
+    creator {
+      username
+    }
+    memberCount
+    onlineCount
+  }
+}
+
+# Join a room
+mutation JoinRoom {
+  joinRoom(input: {
+    roomId: "room-uuid"
+    password: "optional-password"
+  }) {
+    id
+    role
+    joinedAt
+    user {
+      username
+      status
+    }
+  }
+}
+```
+
+### 💬 Advanced Messaging
+
+```graphql
+# Send a message with rich metadata
+mutation SendRichMessage {
+  sendMessageToRoom(
+    roomId: "room-uuid"
+    text: "Check out this image!"
+    messageType: IMAGE
+    metadata: {
+      imageUrl: "https://example.com/image.jpg"
+      imageWidth: 800
+      imageHeight: 600
+    }
+  ) {
+    id
+    text
+    messageType
+    metadata {
+      imageUrl
+      imageWidth
+      imageHeight
+    }
+    userInfo {
+      username
+      avatarUrl
+    }
+    reactions {
+      emoji
+      user {
+        username
+      }
+    }
+    reactionCount {
+      emoji
+      count
+    }
+  }
+}
+
+# Add reaction to message
+mutation AddReaction {
+  addReaction(input: {
+    messageId: "message-uuid"
+    emoji: "👍"
+  }) {
+    id
+    emoji
+    user {
+      username
+    }
+  }
+}
+
+# Search messages
+query SearchMessages {
+  searchMessages(
+    query: "important announcement"
+    roomId: "room-uuid"
+    limit: 20
+  ) {
+    id
+    text
+    userInfo {
+      username
+    }
+    createdAt
+  }
+}
+```
+
+### ⚡ Real-Time Subscriptions
+
+```graphql
+# Subscribe to room messages
+subscription RoomMessages {
+  messageAddedToRoom(roomId: "room-uuid") {
+    id
+    text
+    messageType
+    userInfo {
+      username
+      avatarUrl
+      status
+    }
+    reactions {
+      emoji
+      user {
+        username
+      }
+    }
+    createdAt
+  }
+}
+
+# Subscribe to typing indicators
+subscription TypingIndicators {
+  typingStarted(roomId: "room-uuid") {
+    user {
+      username
+      avatarUrl
+    }
+    startedAt
+  }
+}
+```
+
+### 📊 Advanced Queries
+
+```graphql
+# Get user's rooms with statistics
+query MyRooms {
+  myRooms {
+    id
+    name
+    description
+    roomType
+    memberCount
+    onlineCount
+    creator {
+      username
+    }
+    members {
+      role
+      user {
+        username
+        status
+        lastSeenAt
+      }
+    }
+  }
+}
+
+# Get room messages with pagination
+query RoomMessages {
+  messagesByRoom(
+    roomId: "room-uuid"
+    limit: 50
+    offset: 0
+  ) {
+    id
+    text
+    messageType
+    userInfo {
+      username
+      avatarUrl
+    }
+    replyTo {
+      id
+      text
+      userInfo {
+        username
+      }
+    }
+    reactions {
+      emoji
+      user {
+        username
+      }
+    }
+    editedAt
+    createdAt
+  }
+}
+```
+
+## 🔄 Real-Time Flow
+
+The application implements a comprehensive real-time messaging flow:
+
+1. **Client Authentication**: User logs in and receives JWT token
+2. **Room Access**: User joins rooms based on permissions and room type
+3. **Message Creation**: User sends message with optional metadata and threading
+4. **Business Validation**: Service layer validates message content and user permissions
+5. **Database Persistence**: Message saved to PostgreSQL with relations
+6. **Real-time Broadcasting**: Redis Pub/Sub distributes to all room subscribers
+7. **Live Updates**: WebSocket subscriptions deliver instant updates
+8. **Reaction System**: Users can react with emojis in real-time
+9. **Typing Indicators**: Show live typing status with automatic cleanup
+10. **Presence Management**: Track and broadcast user online/offline status
+
+## 🗄️ Database Schema
+
+### Core Tables
+
+- **users**: User accounts with profiles and authentication
+- **rooms**: Chat rooms with metadata and settings  
+- **room_members**: User-room relationships with roles
+- **messages**: Chat messages with threading and metadata
+- **message_reactions**: Emoji reactions to messages
+- **typing_indicators**: Real-time typing status (auto-expiring)
+
+### Key Relationships
+
+- Users can be members of multiple rooms
+- Rooms have creators and members with different roles
+- Messages belong to rooms and users, can reply to other messages
+- Reactions link users to messages with emoji data
+- Typing indicators track temporary user activity
+
 ## 🧪 Testing
 
-The project includes comprehensive unit tests for the business layer with mocked dependencies.
-
-### Run Tests
+Run the comprehensive test suite:
 
 ```bash
 # Run all tests
@@ -225,81 +429,72 @@ go test ./...
 # Run tests with coverage
 go test -cover ./...
 
-# Run business layer tests only
-go test ./internal/business/service/ -v
+# Run tests in verbose mode
+go test -v ./...
 
-# Run tests with detailed output
-go test ./... -v
+# Run specific service tests
+go test ./internal/business/service/...
 ```
 
 ### Test Coverage
 
-The business layer has **100% test coverage** including:
+- **Unit Tests**: Service layer business logic
+- **Repository Tests**: Data access layer validation
+- **Integration Tests**: End-to-end workflow testing
+- **Mock Testing**: Isolated component testing
 
-- ✅ Successful message creation and publishing
-- ✅ Repository error handling
-- ✅ Publisher error handling (graceful degradation)
-- ✅ Input validation (nil input, empty fields, length limits)
-- ✅ Room subscription functionality
-- ✅ Error propagation and logging
+## 🚀 Production Considerations
 
-## 🐳 Docker Usage
+### Security
 
-### Build Application Image
+- [x] **JWT Authentication** with secure token validation
+- [x] **Password Hashing** using bcrypt with proper cost
+- [x] **Input Validation** at service and GraphQL layers
+- [x] **SQL Injection Prevention** using parameterized queries
+- [ ] Rate limiting for API endpoints
+- [ ] HTTPS enforcement in production
+- [ ] Content filtering and moderation tools
+- [ ] User blocking and reporting system
 
-```bash
-docker build -t chat-app .
-```
+### Performance
 
-### Run with Docker Compose
+- [x] **Database Indexing** on frequently queried columns
+- [x] **Connection Pooling** for database connections
+- [x] **Efficient Queries** with proper JOIN strategies
+- [x] **Redis Caching** for real-time message distribution
+- [ ] GraphQL query complexity analysis
+- [ ] Message pagination with cursor-based navigation
+- [ ] Database query optimization and monitoring
+- [ ] CDN integration for file uploads
 
-```bash
-# Start all services
-docker-compose up -d
+### Scalability
 
-# View logs
-docker-compose logs -f app
+- [x] **Microservice-Ready Architecture** with clear boundaries
+- [x] **Horizontal Scaling** support through stateless design
+- [x] **Redis Pub/Sub** for distributed real-time messaging
+- [ ] Database read replicas for query scaling
+- [ ] Redis clustering for high availability
+- [ ] Load balancing strategies
+- [ ] Auto-scaling configuration
 
-# Stop all services
-docker-compose down
+### Monitoring & Observability
 
-# Rebuild and restart
-docker-compose up --build
-```
+- [ ] Structured logging with correlation IDs
+- [ ] Metrics collection (Prometheus/Grafana)
+- [ ] Health check endpoints
+- [ ] Distributed tracing (Jaeger/Zipkin)
+- [ ] Error tracking and alerting
+- [ ] Performance monitoring and profiling
 
-## 📝 Database Schema
+### Deployment
 
-```sql
-CREATE TABLE messages (
-    id UUID PRIMARY KEY,
-    room VARCHAR(50) NOT NULL,
-    "user" VARCHAR(50) NOT NULL,
-    text TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-);
-
--- Indexes for optimal query performance
-CREATE INDEX idx_messages_room ON messages(room);
-CREATE INDEX idx_messages_created_at ON messages(created_at);
-CREATE INDEX idx_messages_room_created_at ON messages(room, created_at);
-```
-
-## 🔧 Configuration
-
-The application uses environment variables for configuration:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DB_HOST` | PostgreSQL host | `localhost` |
-| `DB_PORT` | PostgreSQL port | `5432` |
-| `DB_USER` | PostgreSQL username | `postgres` |
-| `DB_PASSWORD` | PostgreSQL password | `postgres` |
-| `DB_NAME` | PostgreSQL database name | `chatdb` |
-| `DB_SSLMODE` | PostgreSQL SSL mode | `disable` |
-| `REDIS_HOST` | Redis host | `localhost` |
-| `REDIS_PORT` | Redis port | `6379` |
-| `REDIS_PASSWORD` | Redis password | `` |
-| `SERVER_PORT` | Application server port | `8080` |
+- [x] **Docker containerization** with multi-stage builds
+- [x] **Docker Compose** for local development
+- [ ] Kubernetes manifests and Helm charts
+- [ ] CI/CD pipeline with automated testing
+- [ ] Database migration automation
+- [ ] Environment-specific configurations
+- [ ] Blue-green deployment strategy
 
 ## 🏗️ Architecture Decisions
 
@@ -308,66 +503,98 @@ The application uses environment variables for configuration:
 1. **Separation of Concerns**: Each layer has a single, well-defined responsibility
 2. **Testability**: Business logic can be tested in isolation with mocked dependencies
 3. **Maintainability**: Changes in one layer don't affect others
-4. **Scalability**: Layers can be scaled independently
+4. **Scalability**: Layers can be scaled independently as microservices
 
 ### Why GraphQL?
 
-1. **Type Safety**: Strong typing with schema-first development
+1. **Type Safety**: Strong typing with schema-first development approach
 2. **Real-time Subscriptions**: Built-in support for WebSocket subscriptions
 3. **Flexible Queries**: Clients can request exactly the data they need
-4. **Introspection**: Self-documenting API with playground
+4. **Introspection**: Self-documenting API with interactive playground
+5. **Single Endpoint**: Reduces complexity compared to multiple REST endpoints
 
 ### Why Redis Pub/Sub?
 
 1. **Performance**: In-memory operations for fast message delivery
-2. **Scalability**: Horizontal scaling with Redis Cluster
+2. **Scalability**: Horizontal scaling with Redis Cluster support
 3. **Reliability**: Persistent connections with automatic reconnection
 4. **Simplicity**: Straightforward pub/sub pattern implementation
+5. **Real-time**: Sub-millisecond message delivery for live features
 
-## 🔍 Testing Strategy
+### Why Repository Pattern?
 
-### Unit Tests
+1. **Data Access Abstraction**: Hide database implementation details
+2. **Testability**: Easy to mock for unit testing
+3. **Flexibility**: Can switch between different data sources
+4. **Consistency**: Standardized data access patterns
 
-- **Business Layer**: Complete isolation with mocked dependencies
-- **Repository Layer**: Integration tests with test database
-- **Service Layer**: End-to-end functionality tests
+## 🔧 Development
 
-### Test Principles
+### Project Structure
 
-1. **Arrange-Act-Assert**: Clear test structure
-2. **Mock External Dependencies**: Test business logic in isolation
-3. **Test Edge Cases**: Error conditions and boundary values
-4. **Descriptive Test Names**: Clear intent and expected behavior
+```
+├── cmd/
+│   └── server/          # Application entry point
+├── internal/
+│   ├── business/        # Business logic layer
+│   │   └── service/     # Service implementations
+│   ├── domain/          # Domain models and interfaces
+│   │   └── models/      # Rich domain models
+│   ├── infrastructure/  # Infrastructure layer
+│   │   ├── auth/        # JWT authentication
+│   │   ├── database/    # Database configuration
+│   │   └── redis/       # Redis pub/sub implementation
+│   ├── persistence/     # Persistence layer
+│   │   └── repository/  # Repository interfaces and implementations
+│   └── presentation/    # Presentation layer
+│       └── graphql/     # GraphQL schema and resolvers
+├── migrations/          # Database migration files
+├── docker-compose.yml   # Docker services configuration
+└── Dockerfile          # Application container definition
+```
 
-## 🚀 Production Considerations
+### Adding New Features
 
-### Security
+1. **Define Domain Models**: Add new rich models in `internal/domain/models/`
+2. **Create Repository Interface**: Define data access interface in `internal/persistence/repository/`
+3. **Implement Repository**: Create PostgreSQL implementation with proper indexing
+4. **Create Service**: Implement business logic with validation in `internal/business/service/`
+5. **Update GraphQL Schema**: Add new types, inputs, and operations
+6. **Implement Resolvers**: Connect GraphQL operations to services
+7. **Write Tests**: Add comprehensive unit and integration tests
+8. **Update Documentation**: Document new API operations and features
 
-- [ ] Implement authentication and authorization
-- [ ] Add rate limiting for API endpoints
-- [ ] Use HTTPS in production
-- [ ] Sanitize user inputs to prevent XSS
+## 🐳 Docker Support
 
-### Monitoring
+### Development Environment
 
-- [ ] Add structured logging
-- [ ] Implement metrics collection
-- [ ] Set up health check endpoints
-- [ ] Add distributed tracing
+```bash
+# Start all services
+docker-compose up -d
 
-### Performance
+# View logs
+docker-compose logs -f app
 
-- [ ] Database connection pooling
-- [ ] Redis connection optimization
-- [ ] GraphQL query complexity analysis
-- [ ] Implement caching strategies
+# Stop services
+docker-compose down
 
-### Deployment
+# Rebuild and restart
+docker-compose up -d --build
+```
 
-- [ ] Kubernetes manifests
-- [ ] CI/CD pipeline
-- [ ] Database migration strategy
-- [ ] Environment-specific configurations
+### Production Build
+
+```bash
+# Build production image
+docker build -t chat-app:latest .
+
+# Run production container
+docker run -p 8080:8080 \
+  -e DB_HOST=your-db-host \
+  -e REDIS_HOST=your-redis-host \
+  -e JWT_SECRET=your-jwt-secret \
+  chat-app:latest
+```
 
 ## 🤝 Contributing
 
@@ -377,17 +604,29 @@ The application uses environment variables for configuration:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+### Development Guidelines
+
+- Follow Go best practices and conventions
+- Write comprehensive unit tests for new features
+- Update documentation for API changes
+- Use conventional commits for clear history
+- Ensure all tests pass before submitting PR
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- [gqlgen](https://gqlgen.com/) for excellent GraphQL tooling
+- [gqlgen](https://gqlgen.com/) for excellent GraphQL tooling and code generation
 - [testify](https://github.com/stretchr/testify) for comprehensive testing utilities
-- [sqlx](https://github.com/jmoiron/sqlx) for enhanced SQL operations
-- [go-redis](https://github.com/redis/go-redis) for Redis client library
+- [sqlx](https://github.com/jmoiron/sqlx) for enhanced SQL operations and scanning
+- [go-redis](https://github.com/redis/go-redis) for robust Redis client library
+- [jwt-go](https://github.com/golang-jwt/jwt) for JWT authentication implementation
+- [bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt) for secure password hashing
 
 ---
 
-**Built with ❤️ using Go and GraphQL**
+**Built with ❤️ using Go, GraphQL, PostgreSQL, and Redis**
+
+*This project demonstrates production-ready Go development with modern architecture patterns, comprehensive testing, and scalable real-time features.*

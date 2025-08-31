@@ -21,6 +21,7 @@ import (
 
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/business/service"
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/config"
+	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/infrastructure/auth"
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/infrastructure/database"
 	redisInfra "github.com/terminator791/Layered-Architecture-graphql-GO/internal/infrastructure/redis"
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/persistence/repository"
@@ -68,12 +69,23 @@ func main() {
 	redisPublisher := redisInfra.NewRedisPublisher(redisClient)
 	redisSubscriber := redisInfra.NewRedisSubscriber(redisClient)
 	
+	// Initialize JWT service
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "your-super-secret-jwt-key-change-in-production"
+	}
+	jwtService := auth.NewJWTService(jwtSecret)
+	
 	// Initialize services
+	userService := service.NewUserService(userRepo, jwtService)
+	roomService := service.NewRoomService(roomRepo, userRepo)
 	messageService := service.NewMessageService(messageRepo, roomRepo, userRepo, typingRepo, redisPublisher, redisSubscriber)
 
 	// Initialize GraphQL resolver
 	resolver := &resolvers.Resolver{
 		MessageService: messageService,
+		UserService:    userService,
+		RoomService:    roomService,
 	}
 
 	// Create GraphQL server
