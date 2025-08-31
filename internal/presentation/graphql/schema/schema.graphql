@@ -1,0 +1,30 @@
+scalar Time
+
+type Message {
+  id: ID!
+  room: String!
+  user: String!
+  text: String!
+  createdAt: Time!
+}
+
+input SendMessageInput {
+  room: String!
+  user: String!
+  text: String!
+}
+
+type Query {
+  # Get all messages for a specific room
+  messages(room: String!): [Message!]!
+}
+
+type Mutation {
+  # Send a new message to a room
+  sendMessage(input: SendMessageInput!): Message!
+}
+
+type Subscription {
+  # Subscribe to new messages in a specific room
+  messageAdded(room: String!): Message!
+}
