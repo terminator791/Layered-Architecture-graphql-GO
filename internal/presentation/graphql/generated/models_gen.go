@@ -2,10 +2,26 @@
 
 package generated
 
+type MessageMetadataInput struct {
+	ImageWidth  *int    `json:"imageWidth,omitempty"`
+	ImageHeight *int    `json:"imageHeight,omitempty"`
+	ImageURL    *string `json:"imageUrl,omitempty"`
+	FileName    *string `json:"fileName,omitempty"`
+	FileSize    *int    `json:"fileSize,omitempty"`
+	FileURL     *string `json:"fileUrl,omitempty"`
+	MimeType    *string `json:"mimeType,omitempty"`
+	SystemType  *string `json:"systemType,omitempty"`
+}
+
 type Mutation struct {
 }
 
 type Query struct {
+}
+
+type ReactionCount struct {
+	Emoji string `json:"emoji"`
+	Count int    `json:"count"`
 }
 
 type Subscription struct {

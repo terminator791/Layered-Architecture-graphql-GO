@@ -6,10 +6,23 @@ package resolvers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/domain/models"
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/presentation/graphql/generated"
 )
+
+// Basic resolver implementations for key functionality
+
+// Register is the resolver for the register field.
+func (r *mutationResolver) Register(ctx context.Context, input models.CreateUserInput) (*models.AuthPayload, error) {
+	return r.UserService.Register(ctx, &input)
+}
+
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (*models.AuthPayload, error) {
+	return r.UserService.Login(ctx, &input)
+}
 
 // SendMessage is the resolver for the sendMessage field.
 func (r *mutationResolver) SendMessage(ctx context.Context, input models.CreateMessageInput) (*models.Message, error) {
@@ -26,6 +39,182 @@ func (r *subscriptionResolver) MessageAdded(ctx context.Context, room string) (<
 	return r.MessageService.SubscribeToRoom(ctx, room)
 }
 
+// Placeholder implementations for other mutations - will implement as needed
+func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
+	return true, nil
+}
+
+func (r *mutationResolver) UpdateUser(ctx context.Context, input models.UpdateUserInput) (*models.User, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) UpdateUserStatus(ctx context.Context, status models.UserStatus) (*models.User, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) DeleteUser(ctx context.Context) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) CreateRoom(ctx context.Context, input models.CreateRoomInput) (*models.Room, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) UpdateRoom(ctx context.Context, roomID string, input models.UpdateRoomInput) (*models.Room, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) DeleteRoom(ctx context.Context, roomID string) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) JoinRoom(ctx context.Context, input models.JoinRoomInput) (*models.RoomMember, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) UpdateRoomMember(ctx context.Context, input models.UpdateRoomMemberInput) (*models.RoomMember, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) KickRoomMember(ctx context.Context, roomID string, userID string) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) SendMessageToRoom(ctx context.Context, roomID string, text string, messageType *models.MessageType, replyToID *string, metadata *generated.MessageMetadataInput) (*models.Message, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) UpdateMessage(ctx context.Context, input models.UpdateMessageInput) (*models.Message, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) DeleteMessage(ctx context.Context, messageID string) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) AddReaction(ctx context.Context, input models.AddReactionInput) (*models.MessageReaction, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) RemoveReaction(ctx context.Context, input models.RemoveReactionInput) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) StartTyping(ctx context.Context, input models.StartTypingInput) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+func (r *mutationResolver) StopTyping(ctx context.Context, input models.StopTypingInput) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+// Placeholder query implementations
+func (r *queryResolver) Me(ctx context.Context) (*models.User, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *queryResolver) User(ctx context.Context, id string) (*models.User, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *queryResolver) Users(ctx context.Context, limit *int, offset *int) ([]*models.User, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *queryResolver) Room(ctx context.Context, id string) (*models.Room, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *queryResolver) Rooms(ctx context.Context, limit *int, offset *int) ([]*models.Room, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *queryResolver) MyRooms(ctx context.Context) ([]*models.Room, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *queryResolver) MessagesByRoom(ctx context.Context, roomID string, limit *int, offset *int) ([]*models.Message, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *queryResolver) Message(ctx context.Context, id string) (*models.Message, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *queryResolver) SearchMessages(ctx context.Context, query string, roomID *string, limit *int, offset *int) ([]*models.Message, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// Placeholder subscription implementations
+func (r *subscriptionResolver) MessageAddedToRoom(ctx context.Context, roomID string) (<-chan *models.Message, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) MessageUpdated(ctx context.Context, roomID string) (<-chan *models.Message, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) MessageDeleted(ctx context.Context, roomID string) (<-chan *models.Message, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) ReactionAdded(ctx context.Context, roomID string) (<-chan *models.MessageReaction, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) ReactionRemoved(ctx context.Context, roomID string) (<-chan *models.MessageReaction, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) UserStatusChanged(ctx context.Context, roomID string) (<-chan *models.User, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) TypingStarted(ctx context.Context, roomID string) (<-chan *models.TypingIndicator, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) TypingStopped(ctx context.Context, roomID string) (<-chan *models.TypingIndicator, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) RoomMemberJoined(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) RoomMemberLeft(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) RoomMemberUpdated(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) RoomUpdated(ctx context.Context, roomID string) (<-chan *models.Room, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// Message field resolvers
+func (r *messageResolver) ReactionCount(ctx context.Context, obj *models.Message) ([]*generated.ReactionCount, error) {
+	if obj.ReactionCount == nil {
+		return []*generated.ReactionCount{}, nil
+	}
+
+	var result []*generated.ReactionCount
+	for emoji, count := range obj.ReactionCount {
+		result = append(result, &generated.ReactionCount{
+			Emoji: emoji,
+			Count: count,
+		})
+	}
+
+	return result, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
@@ -35,6 +224,69 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 // Subscription returns generated.SubscriptionResolver implementation.
 func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
 
+// Message returns generated.MessageResolver implementation.
+func (r *Resolver) Message() generated.MessageResolver { return &messageResolver{r} }
+
+// SendMessageInput returns generated.SendMessageInputResolver implementation.
+func (r *Resolver) SendMessageInput() generated.SendMessageInputResolver { return &sendMessageInputResolver{r} }
+
+// UpdateMessageInput returns generated.UpdateMessageInputResolver implementation.
+func (r *Resolver) UpdateMessageInput() generated.UpdateMessageInputResolver { return &updateMessageInputResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
+type messageResolver struct{ *Resolver }
+type sendMessageInputResolver struct{ *Resolver }
+type updateMessageInputResolver struct{ *Resolver }
+
+// Input resolvers for metadata handling
+func (r *sendMessageInputResolver) Metadata(ctx context.Context, obj *models.CreateMessageInput, data *generated.MessageMetadataInput) error {
+	if data == nil {
+		return nil
+	}
+
+	metadata := &models.MessageMetadata{
+		ImageWidth:  data.ImageWidth,
+		ImageHeight: data.ImageHeight,
+		ImageURL:    data.ImageURL,
+		FileName:    data.FileName,
+		FileURL:     data.FileURL,
+		MimeType:    data.MimeType,
+		SystemType:  data.SystemType,
+	}
+
+	// Convert int to int64 for FileSize
+	if data.FileSize != nil {
+		fileSize := int64(*data.FileSize)
+		metadata.FileSize = &fileSize
+	}
+
+	obj.Metadata = metadata
+	return nil
+}
+
+func (r *updateMessageInputResolver) Metadata(ctx context.Context, obj *models.UpdateMessageInput, data *generated.MessageMetadataInput) error {
+	if data == nil {
+		return nil
+	}
+
+	metadata := &models.MessageMetadata{
+		ImageWidth:  data.ImageWidth,
+		ImageHeight: data.ImageHeight,
+		ImageURL:    data.ImageURL,
+		FileName:    data.FileName,
+		FileURL:     data.FileURL,
+		MimeType:    data.MimeType,
+		SystemType:  data.SystemType,
+	}
+
+	// Convert int to int64 for FileSize
+	if data.FileSize != nil {
+		fileSize := int64(*data.FileSize)
+		metadata.FileSize = &fileSize
+	}
+
+	obj.Metadata = metadata
+	return nil
+}

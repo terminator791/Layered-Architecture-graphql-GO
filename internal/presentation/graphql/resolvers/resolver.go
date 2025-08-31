@@ -10,4 +10,6 @@ import (
 
 type Resolver struct{
 	MessageService service.MessageService
+	UserService    service.UserService
+	RoomService    service.RoomService
 }

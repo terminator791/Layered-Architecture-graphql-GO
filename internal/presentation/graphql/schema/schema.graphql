@@ -1,30 +1,299 @@
 scalar Time
 
+# User types
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  displayName: String
+  avatarUrl: String
+  bio: String
+  status: UserStatus!
+  lastSeenAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  AWAY
+  BUSY
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+input CreateUserInput {
+  username: String!
+  email: String!
+  password: String!
+  displayName: String
+  avatarUrl: String
+  bio: String
+}
+
+input UpdateUserInput {
+  displayName: String
+  avatarUrl: String
+  bio: String
+  status: UserStatus
+}
+
+input LoginInput {
+  username: String!
+  password: String!
+}
+
+# Room types
+type Room {
+  id: ID!
+  name: String!
+  description: String
+  roomType: RoomType!
+  avatarUrl: String
+  maxMembers: Int!
+  createdAt: Time!
+  updatedAt: Time!
+  creator: User!
+  members: [RoomMember!]!
+  memberCount: Int!
+  onlineCount: Int!
+}
+
+enum RoomType {
+  PUBLIC
+  PRIVATE
+  DIRECT
+}
+
+enum RoomRole {
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+type RoomMember {
+  id: ID!
+  user: User!
+  role: RoomRole!
+  joinedAt: Time!
+  lastReadAt: Time
+}
+
+input CreateRoomInput {
+  name: String!
+  description: String
+  roomType: RoomType!
+  password: String
+  avatarUrl: String
+  maxMembers: Int
+}
+
+input UpdateRoomInput {
+  name: String
+  description: String
+  avatarUrl: String
+  maxMembers: Int
+}
+
+input JoinRoomInput {
+  roomId: ID!
+  password: String
+}
+
+input UpdateRoomMemberInput {
+  roomId: ID!
+  userId: ID!
+  role: RoomRole
+}
+
+# Message types
 type Message {
   id: ID!
-  room: String!
-  user: String!
+  room: String! # Legacy field for backward compatibility
+  user: String! # Legacy field for backward compatibility
   text: String!
+  userId: ID
+  roomId: ID
+  messageType: MessageType!
+  replyToId: ID
+  editedAt: Time
+  deletedAt: Time
+  metadata: MessageMetadata
+  createdAt: Time!
+  userInfo: User
+  roomInfo: Room
+  replyTo: Message
+  reactions: [MessageReaction!]!
+  reactionCount: [ReactionCount!]!
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+type MessageMetadata {
+  # Image metadata
+  imageWidth: Int
+  imageHeight: Int
+  imageUrl: String
+  
+  # File metadata
+  fileName: String
+  fileSize: Int
+  fileUrl: String
+  mimeType: String
+  
+  # System message metadata
+  systemType: String
+}
+
+type MessageReaction {
+  id: ID!
+  user: User!
+  emoji: String!
   createdAt: Time!
 }
 
+type ReactionCount {
+  emoji: String!
+  count: Int!
+}
+
+type TypingIndicator {
+  user: User!
+  roomId: ID!
+  startedAt: Time!
+}
+
 input SendMessageInput {
-  room: String!
-  user: String!
+  room: String! # Legacy field for backward compatibility
+  user: String! # Legacy field for backward compatibility
   text: String!
+  roomId: ID
+  messageType: MessageType
+  replyToId: ID
+  metadata: MessageMetadataInput
+}
+
+input MessageMetadataInput {
+  # Image metadata
+  imageWidth: Int
+  imageHeight: Int
+  imageUrl: String
+  
+  # File metadata
+  fileName: String
+  fileSize: Int
+  fileUrl: String
+  mimeType: String
+  
+  # System message metadata
+  systemType: String
+}
+
+input UpdateMessageInput {
+  messageId: ID!
+  text: String
+  metadata: MessageMetadataInput
+}
+
+input AddReactionInput {
+  messageId: ID!
+  emoji: String!
+}
+
+input RemoveReactionInput {
+  messageId: ID!
+  emoji: String!
+}
+
+input StartTypingInput {
+  roomId: ID!
+}
+
+input StopTypingInput {
+  roomId: ID!
 }
 
 type Query {
-  # Get all messages for a specific room
-  messages(room: String!): [Message!]!
+  # User queries
+  me: User
+  user(id: ID!): User
+  users(limit: Int, offset: Int): [User!]!
+  
+  # Room queries  
+  room(id: ID!): Room
+  rooms(limit: Int, offset: Int): [Room!]!
+  myRooms: [Room!]!
+  
+  # Message queries
+  messages(room: String!): [Message!]! # Legacy endpoint
+  messagesByRoom(roomId: ID!, limit: Int, offset: Int): [Message!]!
+  message(id: ID!): Message
+  searchMessages(query: String!, roomId: ID, limit: Int, offset: Int): [Message!]!
 }
 
 type Mutation {
-  # Send a new message to a room
-  sendMessage(input: SendMessageInput!): Message!
+  # Authentication
+  register(input: CreateUserInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+  logout: Boolean!
+  
+  # User management
+  updateUser(input: UpdateUserInput!): User!
+  updateUserStatus(status: UserStatus!): User!
+  deleteUser: Boolean!
+  
+  # Room management
+  createRoom(input: CreateRoomInput!): Room!
+  updateRoom(roomId: ID!, input: UpdateRoomInput!): Room!
+  deleteRoom(roomId: ID!): Boolean!
+  joinRoom(input: JoinRoomInput!): RoomMember!
+  leaveRoom(roomId: ID!): Boolean!
+  updateRoomMember(input: UpdateRoomMemberInput!): RoomMember!
+  kickRoomMember(roomId: ID!, userId: ID!): Boolean!
+  
+  # Message management
+  sendMessage(input: SendMessageInput!): Message! # Legacy endpoint
+  sendMessageToRoom(roomId: ID!, text: String!, messageType: MessageType, replyToId: ID, metadata: MessageMetadataInput): Message!
+  updateMessage(input: UpdateMessageInput!): Message!
+  deleteMessage(messageId: ID!): Boolean!
+  
+  # Message reactions
+  addReaction(input: AddReactionInput!): MessageReaction!
+  removeReaction(input: RemoveReactionInput!): Boolean!
+  
+  # Typing indicators
+  startTyping(input: StartTypingInput!): Boolean!
+  stopTyping(input: StopTypingInput!): Boolean!
 }
 
 type Subscription {
-  # Subscribe to new messages in a specific room
+  # Legacy subscription
   messageAdded(room: String!): Message!
+  
+  # Enhanced subscriptions
+  messageAddedToRoom(roomId: ID!): Message!
+  messageUpdated(roomId: ID!): Message!
+  messageDeleted(roomId: ID!): Message!
+  reactionAdded(roomId: ID!): MessageReaction!
+  reactionRemoved(roomId: ID!): MessageReaction!
+  
+  # User presence
+  userStatusChanged(roomId: ID!): User!
+  typingStarted(roomId: ID!): TypingIndicator!
+  typingStopped(roomId: ID!): TypingIndicator!
+  
+  # Room events
+  roomMemberJoined(roomId: ID!): RoomMember!
+  roomMemberLeft(roomId: ID!): RoomMember!
+  roomMemberUpdated(roomId: ID!): RoomMember!
+  roomUpdated(roomId: ID!): Room!
 }
