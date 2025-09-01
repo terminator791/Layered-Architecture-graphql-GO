@@ -1,0 +1,19 @@
+mutation CreateRoom {
+  createRoom(
+    input: {
+      name: "Tech Discussions"
+      description: "General technology discussions"
+      roomType: PUBLIC
+      maxMembers: 100
+    }
+  ) {
+    id
+    name
+    description
+    creator {
+      username
+    }
+    memberCount
+    onlineCount
+  }
+}

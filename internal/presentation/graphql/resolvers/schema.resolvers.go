@@ -76,6 +76,18 @@ func (r *mutationResolver) CreateRoom(ctx context.Context, input models.CreateRo
 	if err != nil {
 		return nil, err
 	}
+	
+	// Convert GraphQL enum values to database enum values
+	// gqlgen may send uppercase strings, convert them to our enum constants
+	switch string(input.RoomType) {
+	case "PUBLIC":
+		input.RoomType = models.RoomTypePublic
+	case "PRIVATE":
+		input.RoomType = models.RoomTypePrivate
+	case "DIRECT":
+		input.RoomType = models.RoomTypeDirect
+	}
+	
 	return r.RoomService.CreateRoom(ctx, userID, &input)
 }
 
