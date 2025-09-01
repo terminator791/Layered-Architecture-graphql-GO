@@ -688,3 +688,228 @@ func (s *messageService) validateStopTypingInput(input *models.StopTypingInput) 
 
 	return nil
 }
+// Thread operations
+
+func (s *messageService) StartThread(ctx context.Context, userID string, input *models.StartThreadInput) (*models.Message, error) {
+	if err := s.validateStartThreadInput(input); err != nil {
+		return nil, err
+	}
+	
+	// Get the original message to start thread from
+	originalMessage, err := s.repo.GetMessageByID(ctx, input.MessageID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get original message: %w", err)
+	}
+	if originalMessage == nil {
+		return nil, fmt.Errorf("original message not found")
+	}
+	
+	// Check if user has access to the room
+	if originalMessage.RoomID == nil {
+		return nil, fmt.Errorf("cannot start thread on message without room")
+	}
+	
+	member, err := s.roomRepo.GetRoomMember(ctx, *originalMessage.RoomID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check room membership: %w", err)
+	}
+	if member == nil {
+		return nil, fmt.Errorf("user is not a member of this room")
+	}
+	
+	// Check if original message is already deleted
+	if originalMessage.DeletedAt != nil {
+		return nil, fmt.Errorf("cannot start thread on deleted message")
+	}
+	
+	// Mark original message as thread root if not already
+	if !originalMessage.IsThreadRoot {
+		if err := s.repo.MarkAsThreadRoot(ctx, input.MessageID); err != nil {
+			return nil, fmt.Errorf("failed to mark message as thread root: %w", err)
+		}
+	}
+	
+	// Create the first reply in the thread
+	threadReply := &models.Message{
+		ID:          uuid.New().String(),
+		UserID:      &userID,
+		RoomID:      originalMessage.RoomID,
+		Text:        input.Text,
+		MessageType: models.MessageTypeText,
+		ThreadID:    &input.MessageID, // Thread ID is the original message ID
+		CreatedAt:   time.Now(),
+		// Legacy fields for backward compatibility
+		Room: *originalMessage.RoomID,
+		User: "", // Will be populated by user info
+	}
+	
+	// Get user info for legacy field
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	if user != nil {
+		threadReply.User = user.Username
+	}
+	
+	// Save the thread reply
+	savedReply, err := s.repo.CreateMessage(ctx, threadReply)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save thread reply: %w", err)
+	}
+	
+	// Populate user info
+	savedReply.UserInfo = user
+	
+	// Publish real-time event for thread creation
+	if err := s.publisher.PublishMessage(ctx, *originalMessage.RoomID, savedReply); err != nil {
+		fmt.Printf("Warning: failed to publish thread reply: %v\n", err)
+	}
+	
+	return savedReply, nil
+}
+
+func (s *messageService) ReplyToThread(ctx context.Context, userID string, input *models.ReplyToThreadInput) (*models.Message, error) {
+	if err := s.validateReplyToThreadInput(input); err != nil {
+		return nil, err
+	}
+	
+	// Get the thread root message to validate thread exists
+	threadRoot, err := s.repo.GetMessageByID(ctx, input.ThreadID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get thread root: %w", err)
+	}
+	if threadRoot == nil {
+		return nil, fmt.Errorf("thread not found")
+	}
+	
+	// Verify it's actually a thread root
+	if !threadRoot.IsThreadRoot {
+		return nil, fmt.Errorf("message is not a thread root")
+	}
+	
+	// Check if user has access to the room
+	if threadRoot.RoomID == nil {
+		return nil, fmt.Errorf("cannot reply to thread without room")
+	}
+	
+	member, err := s.roomRepo.GetRoomMember(ctx, *threadRoot.RoomID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check room membership: %w", err)
+	}
+	if member == nil {
+		return nil, fmt.Errorf("user is not a member of this room")
+	}
+	
+	// Check if thread root is deleted
+	if threadRoot.DeletedAt != nil {
+		return nil, fmt.Errorf("cannot reply to deleted thread")
+	}
+	
+	// Create the thread reply
+	threadReply := &models.Message{
+		ID:          uuid.New().String(),
+		UserID:      &userID,
+		RoomID:      threadRoot.RoomID,
+		Text:        input.Text,
+		MessageType: models.MessageTypeText,
+		ThreadID:    &input.ThreadID,
+		CreatedAt:   time.Now(),
+		// Legacy fields for backward compatibility
+		Room: *threadRoot.RoomID,
+		User: "", // Will be populated by user info
+	}
+	
+	// Get user info for legacy field
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	if user != nil {
+		threadReply.User = user.Username
+	}
+	
+	// Save the thread reply
+	savedReply, err := s.repo.CreateMessage(ctx, threadReply)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save thread reply: %w", err)
+	}
+	
+	// Populate user info
+	savedReply.UserInfo = user
+	
+	// Publish real-time event for thread reply
+	if err := s.publisher.PublishMessage(ctx, *threadRoot.RoomID, savedReply); err != nil {
+		fmt.Printf("Warning: failed to publish thread reply: %v\n", err)
+	}
+	
+	return savedReply, nil
+}
+
+func (s *messageService) GetThreadReplies(ctx context.Context, threadID string, limit, offset int) ([]*models.Message, error) {
+	if threadID == "" {
+		return nil, fmt.Errorf("thread ID cannot be empty")
+	}
+	
+	// Validate pagination
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	
+	// Get thread replies
+	replies, err := s.repo.GetThreadReplies(ctx, threadID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get thread replies: %w", err)
+	}
+	
+	// Populate user info for replies
+	return s.populateMessageUserInfo(ctx, replies)
+}
+
+// Validation functions for thread operations
+
+func (s *messageService) validateStartThreadInput(input *models.StartThreadInput) error {
+	if input == nil {
+		return fmt.Errorf("input cannot be nil")
+	}
+	
+	if strings.TrimSpace(input.MessageID) == "" {
+		return fmt.Errorf("message ID cannot be empty")
+	}
+	
+	if strings.TrimSpace(input.Text) == "" {
+		return fmt.Errorf("thread text cannot be empty")
+	}
+	
+	if len(input.Text) > 1000 {
+		return fmt.Errorf("thread text cannot exceed 1000 characters")
+	}
+	
+	return nil
+}
+
+func (s *messageService) validateReplyToThreadInput(input *models.ReplyToThreadInput) error {
+	if input == nil {
+		return fmt.Errorf("input cannot be nil")
+	}
+	
+	if strings.TrimSpace(input.ThreadID) == "" {
+		return fmt.Errorf("thread ID cannot be empty")
+	}
+	
+	if strings.TrimSpace(input.Text) == "" {
+		return fmt.Errorf("reply text cannot be empty")
+	}
+	
+	if len(input.Text) > 1000 {
+		return fmt.Errorf("reply text cannot exceed 1000 characters")
+	}
+	
+	return nil
+}
