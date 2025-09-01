@@ -494,9 +494,16 @@ func (s *messageService) SubscribeToRoomReactions(ctx context.Context, roomID st
 		return nil, fmt.Errorf("room ID cannot be empty")
 	}
 
-	// For now, return a simple channel - this would need Redis pub/sub enhancement
+	// For now, return a channel that waits for context cancellation
+	// In a full implementation, this would subscribe to Redis channels for reaction events
 	reactionCh := make(chan *models.MessageReaction)
-	close(reactionCh) // Close immediately as we don't have reaction subscription implemented yet
+	
+	go func() {
+		defer close(reactionCh)
+		// Placeholder: In real implementation, subscribe to Redis "room:{roomID}:reactions" channel
+		// and forward reaction events to reactionCh
+		<-ctx.Done()
+	}()
 
 	return reactionCh, nil
 }

@@ -9,6 +9,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/redis/go-redis/v9 v9.12.1
 	github.com/vektah/gqlparser/v2 v2.5.30
 	golang.org/x/crypto v0.41.0

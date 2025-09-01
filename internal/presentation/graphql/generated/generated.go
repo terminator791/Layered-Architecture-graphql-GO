@@ -62,6 +62,7 @@ type ComplexityRoot struct {
 		DeletedAt     func(childComplexity int) int
 		EditedAt      func(childComplexity int) int
 		ID            func(childComplexity int) int
+		IsThreadRoot  func(childComplexity int) int
 		MessageType   func(childComplexity int) int
 		Metadata      func(childComplexity int) int
 		ReactionCount func(childComplexity int) int
@@ -72,6 +73,9 @@ type ComplexityRoot struct {
 		RoomID        func(childComplexity int) int
 		RoomInfo      func(childComplexity int) int
 		Text          func(childComplexity int) int
+		ThreadCount   func(childComplexity int) int
+		ThreadID      func(childComplexity int) int
+		ThreadReplies func(childComplexity int) int
 		User          func(childComplexity int) int
 		UserID        func(childComplexity int) int
 		UserInfo      func(childComplexity int) int
@@ -108,8 +112,10 @@ type ComplexityRoot struct {
 		Logout            func(childComplexity int) int
 		Register          func(childComplexity int, input models.CreateUserInput) int
 		RemoveReaction    func(childComplexity int, input models.RemoveReactionInput) int
+		ReplyToThread     func(childComplexity int, input models.ReplyToThreadInput) int
 		SendMessage       func(childComplexity int, input models.CreateMessageInput) int
 		SendMessageToRoom func(childComplexity int, roomID string, text string, messageType *models.MessageType, replyToID *string, metadata *MessageMetadataInput) int
+		StartThread       func(childComplexity int, input models.StartThreadInput) int
 		StartTyping       func(childComplexity int, input models.StartTypingInput) int
 		StopTyping        func(childComplexity int, input models.StopTypingInput) int
 		UpdateMessage     func(childComplexity int, input models.UpdateMessageInput) int
@@ -120,16 +126,19 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Me             func(childComplexity int) int
-		Message        func(childComplexity int, id string) int
-		Messages       func(childComplexity int, room string) int
-		MessagesByRoom func(childComplexity int, roomID string, limit *int, offset *int) int
-		MyRooms        func(childComplexity int) int
-		Room           func(childComplexity int, id string) int
-		Rooms          func(childComplexity int, limit *int, offset *int) int
-		SearchMessages func(childComplexity int, query string, roomID *string, limit *int, offset *int) int
-		User           func(childComplexity int, id string) int
-		Users          func(childComplexity int, limit *int, offset *int) int
+		Me               func(childComplexity int) int
+		Message          func(childComplexity int, id string) int
+		MessageReactions func(childComplexity int, messageID string) int
+		Messages         func(childComplexity int, room string) int
+		MessagesByRoom   func(childComplexity int, roomID string, limit *int, offset *int) int
+		MyRooms          func(childComplexity int) int
+		Room             func(childComplexity int, id string) int
+		Rooms            func(childComplexity int, limit *int, offset *int) int
+		SearchMessages   func(childComplexity int, query string, roomID *string, limit *int, offset *int) int
+		ThreadReplies    func(childComplexity int, threadID string, limit *int, offset *int) int
+		TypingUsers      func(childComplexity int, roomID string) int
+		User             func(childComplexity int, id string) int
+		Users            func(childComplexity int, limit *int, offset *int) int
 	}
 
 	ReactionCount struct {
@@ -171,6 +180,8 @@ type ComplexityRoot struct {
 		RoomMemberLeft     func(childComplexity int, roomID string) int
 		RoomMemberUpdated  func(childComplexity int, roomID string) int
 		RoomUpdated        func(childComplexity int, roomID string) int
+		ThreadReplyAdded   func(childComplexity int, threadID string) int
+		ThreadStarted      func(childComplexity int, roomID string) int
 		TypingStarted      func(childComplexity int, roomID string) int
 		TypingStopped      func(childComplexity int, roomID string) int
 		UserStatusChanged  func(childComplexity int, roomID string) int
@@ -217,6 +228,8 @@ type MutationResolver interface {
 	SendMessageToRoom(ctx context.Context, roomID string, text string, messageType *models.MessageType, replyToID *string, metadata *MessageMetadataInput) (*models.Message, error)
 	UpdateMessage(ctx context.Context, input models.UpdateMessageInput) (*models.Message, error)
 	DeleteMessage(ctx context.Context, messageID string) (bool, error)
+	StartThread(ctx context.Context, input models.StartThreadInput) (*models.Message, error)
+	ReplyToThread(ctx context.Context, input models.ReplyToThreadInput) (*models.Message, error)
 	AddReaction(ctx context.Context, input models.AddReactionInput) (*models.MessageReaction, error)
 	RemoveReaction(ctx context.Context, input models.RemoveReactionInput) (bool, error)
 	StartTyping(ctx context.Context, input models.StartTypingInput) (bool, error)
@@ -233,6 +246,9 @@ type QueryResolver interface {
 	MessagesByRoom(ctx context.Context, roomID string, limit *int, offset *int) ([]*models.Message, error)
 	Message(ctx context.Context, id string) (*models.Message, error)
 	SearchMessages(ctx context.Context, query string, roomID *string, limit *int, offset *int) ([]*models.Message, error)
+	ThreadReplies(ctx context.Context, threadID string, limit *int, offset *int) ([]*models.Message, error)
+	MessageReactions(ctx context.Context, messageID string) ([]*models.MessageReaction, error)
+	TypingUsers(ctx context.Context, roomID string) ([]*models.TypingIndicator, error)
 }
 type SubscriptionResolver interface {
 	MessageAdded(ctx context.Context, room string) (<-chan *models.Message, error)
@@ -241,6 +257,8 @@ type SubscriptionResolver interface {
 	MessageDeleted(ctx context.Context, roomID string) (<-chan *models.Message, error)
 	ReactionAdded(ctx context.Context, roomID string) (<-chan *models.MessageReaction, error)
 	ReactionRemoved(ctx context.Context, roomID string) (<-chan *models.MessageReaction, error)
+	ThreadStarted(ctx context.Context, roomID string) (<-chan *models.Message, error)
+	ThreadReplyAdded(ctx context.Context, threadID string) (<-chan *models.Message, error)
 	UserStatusChanged(ctx context.Context, roomID string) (<-chan *models.User, error)
 	TypingStarted(ctx context.Context, roomID string) (<-chan *models.TypingIndicator, error)
 	TypingStopped(ctx context.Context, roomID string) (<-chan *models.TypingIndicator, error)
@@ -318,6 +336,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Message.ID(childComplexity), true
 
+	case "Message.isThreadRoot":
+		if e.complexity.Message.IsThreadRoot == nil {
+			break
+		}
+
+		return e.complexity.Message.IsThreadRoot(childComplexity), true
+
 	case "Message.messageType":
 		if e.complexity.Message.MessageType == nil {
 			break
@@ -387,6 +412,27 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Message.Text(childComplexity), true
+
+	case "Message.threadCount":
+		if e.complexity.Message.ThreadCount == nil {
+			break
+		}
+
+		return e.complexity.Message.ThreadCount(childComplexity), true
+
+	case "Message.threadId":
+		if e.complexity.Message.ThreadID == nil {
+			break
+		}
+
+		return e.complexity.Message.ThreadID(childComplexity), true
+
+	case "Message.threadReplies":
+		if e.complexity.Message.ThreadReplies == nil {
+			break
+		}
+
+		return e.complexity.Message.ThreadReplies(childComplexity), true
 
 	case "Message.user":
 		if e.complexity.Message.User == nil {
@@ -627,6 +673,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.RemoveReaction(childComplexity, args["input"].(models.RemoveReactionInput)), true
 
+	case "Mutation.replyToThread":
+		if e.complexity.Mutation.ReplyToThread == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_replyToThread_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ReplyToThread(childComplexity, args["input"].(models.ReplyToThreadInput)), true
+
 	case "Mutation.sendMessage":
 		if e.complexity.Mutation.SendMessage == nil {
 			break
@@ -650,6 +708,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.SendMessageToRoom(childComplexity, args["roomId"].(string), args["text"].(string), args["messageType"].(*models.MessageType), args["replyToId"].(*string), args["metadata"].(*MessageMetadataInput)), true
+
+	case "Mutation.startThread":
+		if e.complexity.Mutation.StartThread == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_startThread_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.StartThread(childComplexity, args["input"].(models.StartThreadInput)), true
 
 	case "Mutation.startTyping":
 		if e.complexity.Mutation.StartTyping == nil {
@@ -754,6 +824,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Message(childComplexity, args["id"].(string)), true
 
+	case "Query.messageReactions":
+		if e.complexity.Query.MessageReactions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_messageReactions_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MessageReactions(childComplexity, args["messageId"].(string)), true
+
 	case "Query.messages":
 		if e.complexity.Query.Messages == nil {
 			break
@@ -820,6 +902,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.SearchMessages(childComplexity, args["query"].(string), args["roomId"].(*string), args["limit"].(*int), args["offset"].(*int)), true
+
+	case "Query.threadReplies":
+		if e.complexity.Query.ThreadReplies == nil {
+			break
+		}
+
+		args, err := ec.field_Query_threadReplies_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ThreadReplies(childComplexity, args["threadId"].(string), args["limit"].(*int), args["offset"].(*int)), true
+
+	case "Query.typingUsers":
+		if e.complexity.Query.TypingUsers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_typingUsers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TypingUsers(childComplexity, args["roomId"].(string)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -1098,6 +1204,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Subscription.RoomUpdated(childComplexity, args["roomId"].(string)), true
 
+	case "Subscription.threadReplyAdded":
+		if e.complexity.Subscription.ThreadReplyAdded == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_threadReplyAdded_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.ThreadReplyAdded(childComplexity, args["threadId"].(string)), true
+
+	case "Subscription.threadStarted":
+		if e.complexity.Subscription.ThreadStarted == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_threadStarted_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.ThreadStarted(childComplexity, args["roomId"].(string)), true
+
 	case "Subscription.typingStarted":
 		if e.complexity.Subscription.TypingStarted == nil {
 			break
@@ -1240,7 +1370,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputLoginInput,
 		ec.unmarshalInputMessageMetadataInput,
 		ec.unmarshalInputRemoveReactionInput,
+		ec.unmarshalInputReplyToThreadInput,
 		ec.unmarshalInputSendMessageInput,
+		ec.unmarshalInputStartThreadInput,
 		ec.unmarshalInputStartTypingInput,
 		ec.unmarshalInputStopTypingInput,
 		ec.unmarshalInputUpdateMessageInput,
@@ -1483,6 +1615,8 @@ type Message {
   roomId: ID
   messageType: MessageType!
   replyToId: ID
+  threadId: ID # Threading support
+  isThreadRoot: Boolean! # Is this the start of a thread
   editedAt: Time
   deletedAt: Time
   metadata: MessageMetadata
@@ -1492,6 +1626,8 @@ type Message {
   replyTo: Message
   reactions: [MessageReaction!]!
   reactionCount: [ReactionCount!]!
+  threadReplies: [Message!]! # Replies in this thread
+  threadCount: Int! # Number of replies in thread
 }
 
 enum MessageType {
@@ -1585,6 +1721,17 @@ input StopTypingInput {
   roomId: ID!
 }
 
+# Threading input types
+input StartThreadInput {
+  messageId: ID!
+  text: String!
+}
+
+input ReplyToThreadInput {
+  threadId: ID!
+  text: String!
+}
+
 type Query {
   # User queries
   me: User
@@ -1601,6 +1748,15 @@ type Query {
   messagesByRoom(roomId: ID!, limit: Int, offset: Int): [Message!]!
   message(id: ID!): Message
   searchMessages(query: String!, roomId: ID, limit: Int, offset: Int): [Message!]!
+  
+  # Threading queries
+  threadReplies(threadId: ID!, limit: Int, offset: Int): [Message!]!
+  
+  # Reaction queries
+  messageReactions(messageId: ID!): [MessageReaction!]!
+  
+  # Typing indicator queries
+  typingUsers(roomId: ID!): [TypingIndicator!]!
 }
 
 type Mutation {
@@ -1629,6 +1785,10 @@ type Mutation {
   updateMessage(input: UpdateMessageInput!): Message!
   deleteMessage(messageId: ID!): Boolean!
   
+  # Threading operations
+  startThread(input: StartThreadInput!): Message!
+  replyToThread(input: ReplyToThreadInput!): Message!
+  
   # Message reactions
   addReaction(input: AddReactionInput!): MessageReaction!
   removeReaction(input: RemoveReactionInput!): Boolean!
@@ -1648,6 +1808,10 @@ type Subscription {
   messageDeleted(roomId: ID!): Message!
   reactionAdded(roomId: ID!): MessageReaction!
   reactionRemoved(roomId: ID!): MessageReaction!
+  
+  # Threading subscriptions
+  threadStarted(roomId: ID!): Message!
+  threadReplyAdded(threadId: ID!): Message!
   
   # User presence
   userStatusChanged(roomId: ID!): User!
@@ -1782,6 +1946,17 @@ func (ec *executionContext) field_Mutation_removeReaction_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_replyToThread_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNReplyToThreadInput2githubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐReplyToThreadInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_sendMessageToRoom_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1817,6 +1992,17 @@ func (ec *executionContext) field_Mutation_sendMessage_args(ctx context.Context,
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNSendMessageInput2githubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐCreateMessageInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_startThread_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNStartThreadInput2githubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐStartThreadInput)
 	if err != nil {
 		return nil, err
 	}
@@ -1917,6 +2103,17 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_messageReactions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "messageId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["messageId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_message_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2010,6 +2207,38 @@ func (ec *executionContext) field_Query_searchMessages_args(ctx context.Context,
 		return nil, err
 	}
 	args["offset"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_threadReplies_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "threadId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["threadId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_typingUsers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["roomId"] = arg0
 	return args, nil
 }
 
@@ -2140,6 +2369,28 @@ func (ec *executionContext) field_Subscription_roomMemberUpdated_args(ctx contex
 }
 
 func (ec *executionContext) field_Subscription_roomUpdated_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["roomId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_threadReplyAdded_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "threadId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["threadId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_threadStarted_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomId", ec.unmarshalNID2string)
@@ -2688,6 +2939,91 @@ func (ec *executionContext) fieldContext_Message_replyToId(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Message_threadId(ctx context.Context, field graphql.CollectedField, obj *models.Message) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Message_threadId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ThreadID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Message_threadId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Message",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Message_isThreadRoot(ctx context.Context, field graphql.CollectedField, obj *models.Message) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Message_isThreadRoot(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsThreadRoot, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Message_isThreadRoot(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Message",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Message_editedAt(ctx context.Context, field graphql.CollectedField, obj *models.Message) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Message_editedAt(ctx, field)
 	if err != nil {
@@ -3055,6 +3391,10 @@ func (ec *executionContext) fieldContext_Message_replyTo(_ context.Context, fiel
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -3073,6 +3413,10 @@ func (ec *executionContext) fieldContext_Message_replyTo(_ context.Context, fiel
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -3179,6 +3523,138 @@ func (ec *executionContext) fieldContext_Message_reactionCount(_ context.Context
 				return ec.fieldContext_ReactionCount_count(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ReactionCount", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Message_threadReplies(ctx context.Context, field graphql.CollectedField, obj *models.Message) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Message_threadReplies(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ThreadReplies, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Message)
+	fc.Result = res
+	return ec.marshalNMessage2ᚕᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐMessageᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Message_threadReplies(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Message",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Message_id(ctx, field)
+			case "room":
+				return ec.fieldContext_Message_room(ctx, field)
+			case "user":
+				return ec.fieldContext_Message_user(ctx, field)
+			case "text":
+				return ec.fieldContext_Message_text(ctx, field)
+			case "userId":
+				return ec.fieldContext_Message_userId(ctx, field)
+			case "roomId":
+				return ec.fieldContext_Message_roomId(ctx, field)
+			case "messageType":
+				return ec.fieldContext_Message_messageType(ctx, field)
+			case "replyToId":
+				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
+			case "editedAt":
+				return ec.fieldContext_Message_editedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Message_deletedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Message_metadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Message_createdAt(ctx, field)
+			case "userInfo":
+				return ec.fieldContext_Message_userInfo(ctx, field)
+			case "roomInfo":
+				return ec.fieldContext_Message_roomInfo(ctx, field)
+			case "replyTo":
+				return ec.fieldContext_Message_replyTo(ctx, field)
+			case "reactions":
+				return ec.fieldContext_Message_reactions(ctx, field)
+			case "reactionCount":
+				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Message_threadCount(ctx context.Context, field graphql.CollectedField, obj *models.Message) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Message_threadCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ThreadCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Message_threadCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Message",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4590,6 +5066,10 @@ func (ec *executionContext) fieldContext_Mutation_sendMessage(ctx context.Contex
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -4608,6 +5088,10 @@ func (ec *executionContext) fieldContext_Mutation_sendMessage(ctx context.Contex
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -4681,6 +5165,10 @@ func (ec *executionContext) fieldContext_Mutation_sendMessageToRoom(ctx context.
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -4699,6 +5187,10 @@ func (ec *executionContext) fieldContext_Mutation_sendMessageToRoom(ctx context.
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -4772,6 +5264,10 @@ func (ec *executionContext) fieldContext_Mutation_updateMessage(ctx context.Cont
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -4790,6 +5286,10 @@ func (ec *executionContext) fieldContext_Mutation_updateMessage(ctx context.Cont
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -4857,6 +5357,204 @@ func (ec *executionContext) fieldContext_Mutation_deleteMessage(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteMessage_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_startThread(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_startThread(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().StartThread(rctx, fc.Args["input"].(models.StartThreadInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Message)
+	fc.Result = res
+	return ec.marshalNMessage2ᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐMessage(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_startThread(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Message_id(ctx, field)
+			case "room":
+				return ec.fieldContext_Message_room(ctx, field)
+			case "user":
+				return ec.fieldContext_Message_user(ctx, field)
+			case "text":
+				return ec.fieldContext_Message_text(ctx, field)
+			case "userId":
+				return ec.fieldContext_Message_userId(ctx, field)
+			case "roomId":
+				return ec.fieldContext_Message_roomId(ctx, field)
+			case "messageType":
+				return ec.fieldContext_Message_messageType(ctx, field)
+			case "replyToId":
+				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
+			case "editedAt":
+				return ec.fieldContext_Message_editedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Message_deletedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Message_metadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Message_createdAt(ctx, field)
+			case "userInfo":
+				return ec.fieldContext_Message_userInfo(ctx, field)
+			case "roomInfo":
+				return ec.fieldContext_Message_roomInfo(ctx, field)
+			case "replyTo":
+				return ec.fieldContext_Message_replyTo(ctx, field)
+			case "reactions":
+				return ec.fieldContext_Message_reactions(ctx, field)
+			case "reactionCount":
+				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_startThread_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_replyToThread(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_replyToThread(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ReplyToThread(rctx, fc.Args["input"].(models.ReplyToThreadInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Message)
+	fc.Result = res
+	return ec.marshalNMessage2ᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐMessage(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_replyToThread(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Message_id(ctx, field)
+			case "room":
+				return ec.fieldContext_Message_room(ctx, field)
+			case "user":
+				return ec.fieldContext_Message_user(ctx, field)
+			case "text":
+				return ec.fieldContext_Message_text(ctx, field)
+			case "userId":
+				return ec.fieldContext_Message_userId(ctx, field)
+			case "roomId":
+				return ec.fieldContext_Message_roomId(ctx, field)
+			case "messageType":
+				return ec.fieldContext_Message_messageType(ctx, field)
+			case "replyToId":
+				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
+			case "editedAt":
+				return ec.fieldContext_Message_editedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Message_deletedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Message_metadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Message_createdAt(ctx, field)
+			case "userInfo":
+				return ec.fieldContext_Message_userInfo(ctx, field)
+			case "roomInfo":
+				return ec.fieldContext_Message_roomInfo(ctx, field)
+			case "replyTo":
+				return ec.fieldContext_Message_replyTo(ctx, field)
+			case "reactions":
+				return ec.fieldContext_Message_reactions(ctx, field)
+			case "reactionCount":
+				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_replyToThread_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5591,6 +6289,10 @@ func (ec *executionContext) fieldContext_Query_messages(ctx context.Context, fie
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -5609,6 +6311,10 @@ func (ec *executionContext) fieldContext_Query_messages(ctx context.Context, fie
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -5682,6 +6388,10 @@ func (ec *executionContext) fieldContext_Query_messagesByRoom(ctx context.Contex
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -5700,6 +6410,10 @@ func (ec *executionContext) fieldContext_Query_messagesByRoom(ctx context.Contex
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -5770,6 +6484,10 @@ func (ec *executionContext) fieldContext_Query_message(ctx context.Context, fiel
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -5788,6 +6506,10 @@ func (ec *executionContext) fieldContext_Query_message(ctx context.Context, fiel
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -5861,6 +6583,10 @@ func (ec *executionContext) fieldContext_Query_searchMessages(ctx context.Contex
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -5879,6 +6605,10 @@ func (ec *executionContext) fieldContext_Query_searchMessages(ctx context.Contex
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -5891,6 +6621,233 @@ func (ec *executionContext) fieldContext_Query_searchMessages(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_searchMessages_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_threadReplies(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_threadReplies(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ThreadReplies(rctx, fc.Args["threadId"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Message)
+	fc.Result = res
+	return ec.marshalNMessage2ᚕᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐMessageᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_threadReplies(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Message_id(ctx, field)
+			case "room":
+				return ec.fieldContext_Message_room(ctx, field)
+			case "user":
+				return ec.fieldContext_Message_user(ctx, field)
+			case "text":
+				return ec.fieldContext_Message_text(ctx, field)
+			case "userId":
+				return ec.fieldContext_Message_userId(ctx, field)
+			case "roomId":
+				return ec.fieldContext_Message_roomId(ctx, field)
+			case "messageType":
+				return ec.fieldContext_Message_messageType(ctx, field)
+			case "replyToId":
+				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
+			case "editedAt":
+				return ec.fieldContext_Message_editedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Message_deletedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Message_metadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Message_createdAt(ctx, field)
+			case "userInfo":
+				return ec.fieldContext_Message_userInfo(ctx, field)
+			case "roomInfo":
+				return ec.fieldContext_Message_roomInfo(ctx, field)
+			case "replyTo":
+				return ec.fieldContext_Message_replyTo(ctx, field)
+			case "reactions":
+				return ec.fieldContext_Message_reactions(ctx, field)
+			case "reactionCount":
+				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_threadReplies_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_messageReactions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_messageReactions(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().MessageReactions(rctx, fc.Args["messageId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.MessageReaction)
+	fc.Result = res
+	return ec.marshalNMessageReaction2ᚕᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐMessageReactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_messageReactions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_MessageReaction_id(ctx, field)
+			case "user":
+				return ec.fieldContext_MessageReaction_user(ctx, field)
+			case "emoji":
+				return ec.fieldContext_MessageReaction_emoji(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_MessageReaction_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MessageReaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_messageReactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_typingUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_typingUsers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TypingUsers(rctx, fc.Args["roomId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.TypingIndicator)
+	fc.Result = res
+	return ec.marshalNTypingIndicator2ᚕᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐTypingIndicatorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_typingUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "user":
+				return ec.fieldContext_TypingIndicator_user(ctx, field)
+			case "roomId":
+				return ec.fieldContext_TypingIndicator_roomId(ctx, field)
+			case "startedAt":
+				return ec.fieldContext_TypingIndicator_startedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TypingIndicator", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_typingUsers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -6980,6 +7937,10 @@ func (ec *executionContext) fieldContext_Subscription_messageAdded(ctx context.C
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -6998,6 +7959,10 @@ func (ec *executionContext) fieldContext_Subscription_messageAdded(ctx context.C
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -7085,6 +8050,10 @@ func (ec *executionContext) fieldContext_Subscription_messageAddedToRoom(ctx con
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -7103,6 +8072,10 @@ func (ec *executionContext) fieldContext_Subscription_messageAddedToRoom(ctx con
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -7190,6 +8163,10 @@ func (ec *executionContext) fieldContext_Subscription_messageUpdated(ctx context
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -7208,6 +8185,10 @@ func (ec *executionContext) fieldContext_Subscription_messageUpdated(ctx context
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -7295,6 +8276,10 @@ func (ec *executionContext) fieldContext_Subscription_messageDeleted(ctx context
 				return ec.fieldContext_Message_messageType(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
 			case "editedAt":
 				return ec.fieldContext_Message_editedAt(ctx, field)
 			case "deletedAt":
@@ -7313,6 +8298,10 @@ func (ec *executionContext) fieldContext_Subscription_messageDeleted(ctx context
 				return ec.fieldContext_Message_reactions(ctx, field)
 			case "reactionCount":
 				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -7483,6 +8472,232 @@ func (ec *executionContext) fieldContext_Subscription_reactionRemoved(ctx contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Subscription_reactionRemoved_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_threadStarted(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_threadStarted(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().ThreadStarted(rctx, fc.Args["roomId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *models.Message):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNMessage2ᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐMessage(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_threadStarted(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Message_id(ctx, field)
+			case "room":
+				return ec.fieldContext_Message_room(ctx, field)
+			case "user":
+				return ec.fieldContext_Message_user(ctx, field)
+			case "text":
+				return ec.fieldContext_Message_text(ctx, field)
+			case "userId":
+				return ec.fieldContext_Message_userId(ctx, field)
+			case "roomId":
+				return ec.fieldContext_Message_roomId(ctx, field)
+			case "messageType":
+				return ec.fieldContext_Message_messageType(ctx, field)
+			case "replyToId":
+				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
+			case "editedAt":
+				return ec.fieldContext_Message_editedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Message_deletedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Message_metadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Message_createdAt(ctx, field)
+			case "userInfo":
+				return ec.fieldContext_Message_userInfo(ctx, field)
+			case "roomInfo":
+				return ec.fieldContext_Message_roomInfo(ctx, field)
+			case "replyTo":
+				return ec.fieldContext_Message_replyTo(ctx, field)
+			case "reactions":
+				return ec.fieldContext_Message_reactions(ctx, field)
+			case "reactionCount":
+				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_threadStarted_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_threadReplyAdded(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_threadReplyAdded(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().ThreadReplyAdded(rctx, fc.Args["threadId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *models.Message):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNMessage2ᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐMessage(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_threadReplyAdded(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Message_id(ctx, field)
+			case "room":
+				return ec.fieldContext_Message_room(ctx, field)
+			case "user":
+				return ec.fieldContext_Message_user(ctx, field)
+			case "text":
+				return ec.fieldContext_Message_text(ctx, field)
+			case "userId":
+				return ec.fieldContext_Message_userId(ctx, field)
+			case "roomId":
+				return ec.fieldContext_Message_roomId(ctx, field)
+			case "messageType":
+				return ec.fieldContext_Message_messageType(ctx, field)
+			case "replyToId":
+				return ec.fieldContext_Message_replyToId(ctx, field)
+			case "threadId":
+				return ec.fieldContext_Message_threadId(ctx, field)
+			case "isThreadRoot":
+				return ec.fieldContext_Message_isThreadRoot(ctx, field)
+			case "editedAt":
+				return ec.fieldContext_Message_editedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Message_deletedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Message_metadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Message_createdAt(ctx, field)
+			case "userInfo":
+				return ec.fieldContext_Message_userInfo(ctx, field)
+			case "roomInfo":
+				return ec.fieldContext_Message_roomInfo(ctx, field)
+			case "replyTo":
+				return ec.fieldContext_Message_replyTo(ctx, field)
+			case "reactions":
+				return ec.fieldContext_Message_reactions(ctx, field)
+			case "reactionCount":
+				return ec.fieldContext_Message_reactionCount(ctx, field)
+			case "threadReplies":
+				return ec.fieldContext_Message_threadReplies(ctx, field)
+			case "threadCount":
+				return ec.fieldContext_Message_threadCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_threadReplyAdded_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -10941,6 +12156,40 @@ func (ec *executionContext) unmarshalInputRemoveReactionInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputReplyToThreadInput(ctx context.Context, obj any) (models.ReplyToThreadInput, error) {
+	var it models.ReplyToThreadInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"threadId", "text"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "threadId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("threadId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ThreadID = data
+		case "text":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Text = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSendMessageInput(ctx context.Context, obj any) (models.CreateMessageInput, error) {
 	var it models.CreateMessageInput
 	asMap := map[string]any{}
@@ -11006,6 +12255,40 @@ func (ec *executionContext) unmarshalInputSendMessageInput(ctx context.Context, 
 			if err = ec.resolvers.SendMessageInput().Metadata(ctx, &it, data); err != nil {
 				return it, err
 			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputStartThreadInput(ctx context.Context, obj any) (models.StartThreadInput, error) {
+	var it models.StartThreadInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"messageId", "text"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "messageId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("messageId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MessageID = data
+		case "text":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Text = data
 		}
 	}
 
@@ -11340,6 +12623,13 @@ func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "replyToId":
 			out.Values[i] = ec._Message_replyToId(ctx, field, obj)
+		case "threadId":
+			out.Values[i] = ec._Message_threadId(ctx, field, obj)
+		case "isThreadRoot":
+			out.Values[i] = ec._Message_isThreadRoot(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "editedAt":
 			out.Values[i] = ec._Message_editedAt(ctx, field, obj)
 		case "deletedAt":
@@ -11398,6 +12688,16 @@ func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, 
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "threadReplies":
+			out.Values[i] = ec._Message_threadReplies(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "threadCount":
+			out.Values[i] = ec._Message_threadCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11659,6 +12959,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteMessage":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteMessage(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "startThread":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_startThread(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "replyToThread":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_replyToThread(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -11941,6 +13255,72 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "threadReplies":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_threadReplies(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "messageReactions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_messageReactions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "typingUsers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_typingUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -12185,6 +13565,10 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_reactionAdded(ctx, fields[0])
 	case "reactionRemoved":
 		return ec._Subscription_reactionRemoved(ctx, fields[0])
+	case "threadStarted":
+		return ec._Subscription_threadStarted(ctx, fields[0])
+	case "threadReplyAdded":
+		return ec._Subscription_threadReplyAdded(ctx, fields[0])
 	case "userStatusChanged":
 		return ec._Subscription_userStatusChanged(ctx, fields[0])
 	case "typingStarted":
@@ -12939,6 +14323,11 @@ func (ec *executionContext) unmarshalNRemoveReactionInput2githubᚗcomᚋtermina
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNReplyToThreadInput2githubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐReplyToThreadInput(ctx context.Context, v any) (models.ReplyToThreadInput, error) {
+	res, err := ec.unmarshalInputReplyToThreadInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNRoom2githubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐRoom(ctx context.Context, sel ast.SelectionSet, v models.Room) graphql.Marshaler {
 	return ec._Room(ctx, sel, &v)
 }
@@ -13094,6 +14483,11 @@ func (ec *executionContext) unmarshalNSendMessageInput2githubᚗcomᚋterminator
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNStartThreadInput2githubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐStartThreadInput(ctx context.Context, v any) (models.StartThreadInput, error) {
+	res, err := ec.unmarshalInputStartThreadInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNStartTypingInput2githubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐStartTypingInput(ctx context.Context, v any) (models.StartTypingInput, error) {
 	res, err := ec.unmarshalInputStartTypingInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -13138,6 +14532,50 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 
 func (ec *executionContext) marshalNTypingIndicator2githubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐTypingIndicator(ctx context.Context, sel ast.SelectionSet, v models.TypingIndicator) graphql.Marshaler {
 	return ec._TypingIndicator(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTypingIndicator2ᚕᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐTypingIndicatorᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.TypingIndicator) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTypingIndicator2ᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐTypingIndicator(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNTypingIndicator2ᚖgithubᚗcomᚋterminator791ᚋLayeredᚑArchitectureᚑgraphqlᚑGOᚋinternalᚋdomainᚋmodelsᚐTypingIndicator(ctx context.Context, sel ast.SelectionSet, v *models.TypingIndicator) graphql.Marshaler {
