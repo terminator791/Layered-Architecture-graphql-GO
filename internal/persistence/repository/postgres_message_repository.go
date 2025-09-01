@@ -33,17 +33,56 @@ func (r *postgresMessageRepository) CreateMessage(ctx context.Context, message *
 		message.CreatedAt = time.Now()
 	}
 
+	// Set default message type if not provided
+	if message.MessageType == "" {
+		message.MessageType = models.MessageTypeText
+	}
+
+	// Serialize metadata to JSON if present
+	var metadataBytes []byte
+	var err error
+	if message.Metadata != nil {
+		metadataBytes, err = message.GetMetadataAsJSON()
+		if err != nil {
+			return nil, fmt.Errorf("failed to serialize metadata: %w", err)
+		}
+	}
+
+	// Enhanced query that handles both legacy and new fields
 	query := `
-		INSERT INTO messages (id, room, "user", text, created_at) 
-		VALUES ($1, $2, $3, $4, $5) 
-		RETURNING id, room, "user", text, created_at`
+		INSERT INTO messages (
+			id, room, "user", text, user_id, room_id, message_type, 
+			reply_to_id, thread_id, is_thread_root, metadata, created_at
+		) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+		RETURNING id, room, "user", text, user_id, room_id, message_type, 
+		          reply_to_id, thread_id, is_thread_root, edited_at, deleted_at, 
+		          metadata, created_at`
 
 	var savedMessage models.Message
-	err := r.db.QueryRowxContext(ctx, query, 
-		message.ID, message.Room, message.User, message.Text, message.CreatedAt).StructScan(&savedMessage)
+	var returnedMetadataBytes []byte
+	
+	err = r.db.QueryRowxContext(ctx, query, 
+		message.ID, message.Room, message.User, message.Text, 
+		message.UserID, message.RoomID, message.MessageType,
+		message.ReplyToID, message.ThreadID, message.IsThreadRoot,
+		metadataBytes, message.CreatedAt).Scan(
+		&savedMessage.ID, &savedMessage.Room, &savedMessage.User, &savedMessage.Text,
+		&savedMessage.UserID, &savedMessage.RoomID, &savedMessage.MessageType,
+		&savedMessage.ReplyToID, &savedMessage.ThreadID, &savedMessage.IsThreadRoot,
+		&savedMessage.EditedAt, &savedMessage.DeletedAt, 
+		&returnedMetadataBytes, &savedMessage.CreatedAt,
+	)
 	
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create message: %w", err)
+	}
+
+	// Parse returned metadata
+	if returnedMetadataBytes != nil {
+		if err := savedMessage.SetMetadataFromJSON(returnedMetadataBytes); err != nil {
+			return nil, fmt.Errorf("failed to parse returned metadata: %w", err)
+		}
 	}
 
 	return &savedMessage, nil

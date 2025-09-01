@@ -11,7 +11,22 @@ import (
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/presentation/graphql/generated"
 )
 
-// Basic resolver implementations for key functionality
+// Message field resolvers
+func (r *messageResolver) ReactionCount(ctx context.Context, obj *models.Message) ([]*generated.ReactionCount, error) {
+	if obj.ReactionCount == nil {
+		return []*generated.ReactionCount{}, nil
+	}
+
+	var result []*generated.ReactionCount
+	for emoji, count := range obj.ReactionCount {
+		result = append(result, &generated.ReactionCount{
+			Emoji: emoji,
+			Count: count,
+		})
+	}
+
+	return result, nil
+}
 
 // Register is the resolver for the register field.
 func (r *mutationResolver) Register(ctx context.Context, input models.CreateUserInput) (*models.AuthPayload, error) {
@@ -23,26 +38,12 @@ func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (
 	return r.UserService.Login(ctx, &input)
 }
 
-// SendMessage is the resolver for the sendMessage field.
-func (r *mutationResolver) SendMessage(ctx context.Context, input models.CreateMessageInput) (*models.Message, error) {
-	return r.MessageService.CreateMessage(ctx, &input)
-}
-
-// Messages is the resolver for the messages field.
-func (r *queryResolver) Messages(ctx context.Context, room string) ([]*models.Message, error) {
-	return r.MessageService.GetMessagesByRoom(ctx, room)
-}
-
-// MessageAdded is the resolver for the messageAdded field.
-func (r *subscriptionResolver) MessageAdded(ctx context.Context, room string) (<-chan *models.Message, error) {
-	return r.MessageService.SubscribeToRoom(ctx, room)
-}
-
 // Placeholder implementations for other mutations - will implement as needed
 func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+// UpdateUser is the resolver for the updateUser field.
 func (r *mutationResolver) UpdateUser(ctx context.Context, input models.UpdateUserInput) (*models.User, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -51,6 +52,7 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, input models.UpdateUs
 	return r.UserService.UpdateUser(ctx, userID, &input)
 }
 
+// UpdateUserStatus is the resolver for the updateUserStatus field.
 func (r *mutationResolver) UpdateUserStatus(ctx context.Context, status models.UserStatus) (*models.User, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -59,6 +61,7 @@ func (r *mutationResolver) UpdateUserStatus(ctx context.Context, status models.U
 	return r.UserService.UpdateUserStatus(ctx, userID, status)
 }
 
+// DeleteUser is the resolver for the deleteUser field.
 func (r *mutationResolver) DeleteUser(ctx context.Context) (bool, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -67,6 +70,7 @@ func (r *mutationResolver) DeleteUser(ctx context.Context) (bool, error) {
 	return true, r.UserService.DeleteUser(ctx, userID)
 }
 
+// CreateRoom is the resolver for the createRoom field.
 func (r *mutationResolver) CreateRoom(ctx context.Context, input models.CreateRoomInput) (*models.Room, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -75,6 +79,7 @@ func (r *mutationResolver) CreateRoom(ctx context.Context, input models.CreateRo
 	return r.RoomService.CreateRoom(ctx, userID, &input)
 }
 
+// UpdateRoom is the resolver for the updateRoom field.
 func (r *mutationResolver) UpdateRoom(ctx context.Context, roomID string, input models.UpdateRoomInput) (*models.Room, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -83,6 +88,7 @@ func (r *mutationResolver) UpdateRoom(ctx context.Context, roomID string, input 
 	return r.RoomService.UpdateRoom(ctx, userID, roomID, &input)
 }
 
+// DeleteRoom is the resolver for the deleteRoom field.
 func (r *mutationResolver) DeleteRoom(ctx context.Context, roomID string) (bool, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -91,6 +97,7 @@ func (r *mutationResolver) DeleteRoom(ctx context.Context, roomID string) (bool,
 	return true, r.RoomService.DeleteRoom(ctx, userID, roomID)
 }
 
+// JoinRoom is the resolver for the joinRoom field.
 func (r *mutationResolver) JoinRoom(ctx context.Context, input models.JoinRoomInput) (*models.RoomMember, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -99,6 +106,7 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, input models.JoinRoomIn
 	return r.RoomService.JoinRoom(ctx, userID, &input)
 }
 
+// LeaveRoom is the resolver for the leaveRoom field.
 func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -107,6 +115,7 @@ func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, 
 	return true, r.RoomService.LeaveRoom(ctx, userID, roomID)
 }
 
+// UpdateRoomMember is the resolver for the updateRoomMember field.
 func (r *mutationResolver) UpdateRoomMember(ctx context.Context, input models.UpdateRoomMemberInput) (*models.RoomMember, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -115,6 +124,7 @@ func (r *mutationResolver) UpdateRoomMember(ctx context.Context, input models.Up
 	return r.RoomService.UpdateRoomMember(ctx, userID, &input)
 }
 
+// KickRoomMember is the resolver for the kickRoomMember field.
 func (r *mutationResolver) KickRoomMember(ctx context.Context, roomID string, userID string) (bool, error) {
 	currentUserID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -123,6 +133,12 @@ func (r *mutationResolver) KickRoomMember(ctx context.Context, roomID string, us
 	return true, r.RoomService.KickRoomMember(ctx, currentUserID, roomID, userID)
 }
 
+// SendMessage is the resolver for the sendMessage field.
+func (r *mutationResolver) SendMessage(ctx context.Context, input models.CreateMessageInput) (*models.Message, error) {
+	return r.MessageService.CreateMessage(ctx, &input)
+}
+
+// SendMessageToRoom is the resolver for the sendMessageToRoom field.
 func (r *mutationResolver) SendMessageToRoom(ctx context.Context, roomID string, text string, messageType *models.MessageType, replyToID *string, metadata *generated.MessageMetadataInput) (*models.Message, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -150,6 +166,7 @@ func (r *mutationResolver) SendMessageToRoom(ctx context.Context, roomID string,
 	return r.MessageService.SendMessageToRoom(ctx, userID, roomID, text, messageType, replyToID, msgMetadata)
 }
 
+// UpdateMessage is the resolver for the updateMessage field.
 func (r *mutationResolver) UpdateMessage(ctx context.Context, input models.UpdateMessageInput) (*models.Message, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -158,6 +175,7 @@ func (r *mutationResolver) UpdateMessage(ctx context.Context, input models.Updat
 	return r.MessageService.UpdateMessage(ctx, userID, input.MessageID, &input)
 }
 
+// DeleteMessage is the resolver for the deleteMessage field.
 func (r *mutationResolver) DeleteMessage(ctx context.Context, messageID string) (bool, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -166,6 +184,27 @@ func (r *mutationResolver) DeleteMessage(ctx context.Context, messageID string) 
 	return true, r.MessageService.DeleteMessage(ctx, userID, messageID)
 }
 
+// StartThread is the resolver for the startThread field.
+func (r *mutationResolver) StartThread(ctx context.Context, input models.StartThreadInput) (*models.Message, error) {
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	
+	return r.MessageService.StartThread(ctx, userID, &input)
+}
+
+// ReplyToThread is the resolver for the replyToThread field.
+func (r *mutationResolver) ReplyToThread(ctx context.Context, input models.ReplyToThreadInput) (*models.Message, error) {
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	
+	return r.MessageService.ReplyToThread(ctx, userID, &input)
+}
+
+// AddReaction is the resolver for the addReaction field.
 func (r *mutationResolver) AddReaction(ctx context.Context, input models.AddReactionInput) (*models.MessageReaction, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -174,6 +213,7 @@ func (r *mutationResolver) AddReaction(ctx context.Context, input models.AddReac
 	return r.MessageService.AddReaction(ctx, userID, &input)
 }
 
+// RemoveReaction is the resolver for the removeReaction field.
 func (r *mutationResolver) RemoveReaction(ctx context.Context, input models.RemoveReactionInput) (bool, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -182,6 +222,7 @@ func (r *mutationResolver) RemoveReaction(ctx context.Context, input models.Remo
 	return true, r.MessageService.RemoveReaction(ctx, userID, &input)
 }
 
+// StartTyping is the resolver for the startTyping field.
 func (r *mutationResolver) StartTyping(ctx context.Context, input models.StartTypingInput) (bool, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -190,6 +231,7 @@ func (r *mutationResolver) StartTyping(ctx context.Context, input models.StartTy
 	return true, r.MessageService.StartTyping(ctx, userID, &input)
 }
 
+// StopTyping is the resolver for the stopTyping field.
 func (r *mutationResolver) StopTyping(ctx context.Context, input models.StopTypingInput) (bool, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -208,10 +250,12 @@ func (r *queryResolver) Me(ctx context.Context) (*models.User, error) {
 	return r.UserService.GetCurrentUser(ctx, userID)
 }
 
+// User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*models.User, error) {
 	return r.UserService.GetUserByID(ctx, id)
 }
 
+// Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context, limit *int, offset *int) ([]*models.User, error) {
 	lim := 20
 	off := 0
@@ -224,10 +268,12 @@ func (r *queryResolver) Users(ctx context.Context, limit *int, offset *int) ([]*
 	return r.UserService.ListUsers(ctx, lim, off)
 }
 
+// Room is the resolver for the room field.
 func (r *queryResolver) Room(ctx context.Context, id string) (*models.Room, error) {
 	return r.RoomService.GetRoomByID(ctx, id)
 }
 
+// Rooms is the resolver for the rooms field.
 func (r *queryResolver) Rooms(ctx context.Context, limit *int, offset *int) ([]*models.Room, error) {
 	lim := 20
 	off := 0
@@ -240,6 +286,7 @@ func (r *queryResolver) Rooms(ctx context.Context, limit *int, offset *int) ([]*
 	return r.RoomService.ListRooms(ctx, lim, off)
 }
 
+// MyRooms is the resolver for the myRooms field.
 func (r *queryResolver) MyRooms(ctx context.Context) ([]*models.Room, error) {
 	userID, err := r.getUserIDFromContext(ctx)
 	if err != nil {
@@ -248,6 +295,12 @@ func (r *queryResolver) MyRooms(ctx context.Context) ([]*models.Room, error) {
 	return r.RoomService.GetUserRooms(ctx, userID)
 }
 
+// Messages is the resolver for the messages field.
+func (r *queryResolver) Messages(ctx context.Context, room string) ([]*models.Message, error) {
+	return r.MessageService.GetMessagesByRoom(ctx, room)
+}
+
+// MessagesByRoom is the resolver for the messagesByRoom field.
 func (r *queryResolver) MessagesByRoom(ctx context.Context, roomID string, limit *int, offset *int) ([]*models.Message, error) {
 	lim := 50
 	off := 0
@@ -260,10 +313,12 @@ func (r *queryResolver) MessagesByRoom(ctx context.Context, roomID string, limit
 	return r.MessageService.GetMessagesByRoomID(ctx, roomID, lim, off)
 }
 
+// Message is the resolver for the message field.
 func (r *queryResolver) Message(ctx context.Context, id string) (*models.Message, error) {
 	return r.MessageService.GetMessageByID(ctx, id)
 }
 
+// SearchMessages is the resolver for the searchMessages field.
 func (r *queryResolver) SearchMessages(ctx context.Context, query string, roomID *string, limit *int, offset *int) ([]*models.Message, error) {
 	lim := 20
 	off := 0
@@ -276,31 +331,98 @@ func (r *queryResolver) SearchMessages(ctx context.Context, query string, roomID
 	return r.MessageService.SearchMessages(ctx, query, roomID, lim, off)
 }
 
+// ThreadReplies is the resolver for the threadReplies field.
+func (r *queryResolver) ThreadReplies(ctx context.Context, threadID string, limit *int, offset *int) ([]*models.Message, error) {
+	limitVal := 50
+	offsetVal := 0
+	
+	if limit != nil {
+		limitVal = *limit
+	}
+	if offset != nil {
+		offsetVal = *offset
+	}
+	
+	return r.MessageService.GetThreadReplies(ctx, threadID, limitVal, offsetVal)
+}
+
+// MessageReactions is the resolver for the messageReactions field.
+func (r *queryResolver) MessageReactions(ctx context.Context, messageID string) ([]*models.MessageReaction, error) {
+	return r.MessageService.GetReactions(ctx, messageID)
+}
+
+// TypingUsers is the resolver for the typingUsers field.
+func (r *queryResolver) TypingUsers(ctx context.Context, roomID string) ([]*models.TypingIndicator, error) {
+	return r.MessageService.GetTypingUsers(ctx, roomID)
+}
+
+// MessageAdded is the resolver for the messageAdded field.
+func (r *subscriptionResolver) MessageAdded(ctx context.Context, room string) (<-chan *models.Message, error) {
+	return r.MessageService.SubscribeToRoom(ctx, room)
+}
+
 // Placeholder subscription implementations
 func (r *subscriptionResolver) MessageAddedToRoom(ctx context.Context, roomID string) (<-chan *models.Message, error) {
 	return r.MessageService.SubscribeToRoomMessages(ctx, roomID)
 }
 
+// MessageUpdated is the resolver for the messageUpdated field.
 func (r *subscriptionResolver) MessageUpdated(ctx context.Context, roomID string) (<-chan *models.Message, error) {
 	// For now, use the same channel as message added
 	// In a real implementation, you might want separate channels for different events
 	return r.MessageService.SubscribeToRoomMessages(ctx, roomID)
 }
 
+// MessageDeleted is the resolver for the messageDeleted field.
 func (r *subscriptionResolver) MessageDeleted(ctx context.Context, roomID string) (<-chan *models.Message, error) {
 	// For now, use the same channel as message added
 	return r.MessageService.SubscribeToRoomMessages(ctx, roomID)
 }
 
+// ReactionAdded is the resolver for the reactionAdded field.
 func (r *subscriptionResolver) ReactionAdded(ctx context.Context, roomID string) (<-chan *models.MessageReaction, error) {
 	return r.MessageService.SubscribeToRoomReactions(ctx, roomID)
 }
 
+// ReactionRemoved is the resolver for the reactionRemoved field.
 func (r *subscriptionResolver) ReactionRemoved(ctx context.Context, roomID string) (<-chan *models.MessageReaction, error) {
 	// For now, use the same channel as reaction added
 	return r.MessageService.SubscribeToRoomReactions(ctx, roomID)
 }
 
+// ThreadStarted is the resolver for the threadStarted field.
+func (r *subscriptionResolver) ThreadStarted(ctx context.Context, roomID string) (<-chan *models.Message, error) {
+	// For now, return a simple channel - this would need Redis pub/sub enhancement for threading events
+	threadCh := make(chan *models.Message)
+	
+	// In a real implementation, this would subscribe to Redis channels for thread events
+	// and forward messages that have IsThreadRoot = true for the given room
+	go func() {
+		defer close(threadCh)
+		// Placeholder - in real implementation, subscribe to Redis "room:{roomID}:threads" channel
+		<-ctx.Done()
+	}()
+	
+	return threadCh, nil
+}
+
+// ThreadReplyAdded is the resolver for the threadReplyAdded field.
+func (r *subscriptionResolver) ThreadReplyAdded(ctx context.Context, threadID string) (<-chan *models.Message, error) {
+	// For now, return a simple channel - this would need Redis pub/sub enhancement for thread reply events
+	replyCh := make(chan *models.Message)
+	
+	// In a real implementation, this would subscribe to Redis channels for thread reply events
+	// and forward messages that have ThreadID = threadID
+	go func() {
+		defer close(replyCh)
+		// Placeholder - in real implementation, subscribe to Redis "thread:{threadID}:replies" channel
+		<-ctx.Done()
+	}()
+	
+	return replyCh, nil
+}
+
+// UserStatusChanged is the resolver for the userStatusChanged field.
 func (r *subscriptionResolver) UserStatusChanged(ctx context.Context, roomID string) (<-chan *models.User, error) {
 	// This would require additional Redis channels for user status
 	// For now, return a simple channel
@@ -309,6 +431,7 @@ func (r *subscriptionResolver) UserStatusChanged(ctx context.Context, roomID str
 	return userCh, nil
 }
 
+// TypingStarted is the resolver for the typingStarted field.
 func (r *subscriptionResolver) TypingStarted(ctx context.Context, roomID string) (<-chan *models.TypingIndicator, error) {
 	// This would require additional Redis channels for typing indicators
 	// For now, return a simple channel
@@ -317,6 +440,7 @@ func (r *subscriptionResolver) TypingStarted(ctx context.Context, roomID string)
 	return typingCh, nil
 }
 
+// TypingStopped is the resolver for the typingStopped field.
 func (r *subscriptionResolver) TypingStopped(ctx context.Context, roomID string) (<-chan *models.TypingIndicator, error) {
 	// This would require additional Redis channels for typing indicators
 	// For now, return a simple channel
@@ -325,6 +449,7 @@ func (r *subscriptionResolver) TypingStopped(ctx context.Context, roomID string)
 	return typingCh, nil
 }
 
+// RoomMemberJoined is the resolver for the roomMemberJoined field.
 func (r *subscriptionResolver) RoomMemberJoined(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
 	// This would require additional Redis channels for room events
 	// For now, return a simple channel
@@ -333,6 +458,7 @@ func (r *subscriptionResolver) RoomMemberJoined(ctx context.Context, roomID stri
 	return memberCh, nil
 }
 
+// RoomMemberLeft is the resolver for the roomMemberLeft field.
 func (r *subscriptionResolver) RoomMemberLeft(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
 	// This would require additional Redis channels for room events
 	// For now, return a simple channel
@@ -341,6 +467,7 @@ func (r *subscriptionResolver) RoomMemberLeft(ctx context.Context, roomID string
 	return memberCh, nil
 }
 
+// RoomMemberUpdated is the resolver for the roomMemberUpdated field.
 func (r *subscriptionResolver) RoomMemberUpdated(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
 	// This would require additional Redis channels for room events
 	// For now, return a simple channel
@@ -349,6 +476,7 @@ func (r *subscriptionResolver) RoomMemberUpdated(ctx context.Context, roomID str
 	return memberCh, nil
 }
 
+// RoomUpdated is the resolver for the roomUpdated field.
 func (r *subscriptionResolver) RoomUpdated(ctx context.Context, roomID string) (<-chan *models.Room, error) {
 	// This would require additional Redis channels for room events
 	// For now, return a simple channel
@@ -356,48 +484,6 @@ func (r *subscriptionResolver) RoomUpdated(ctx context.Context, roomID string) (
 	close(roomCh)
 	return roomCh, nil
 }
-
-// Message field resolvers
-func (r *messageResolver) ReactionCount(ctx context.Context, obj *models.Message) ([]*generated.ReactionCount, error) {
-	if obj.ReactionCount == nil {
-		return []*generated.ReactionCount{}, nil
-	}
-
-	var result []*generated.ReactionCount
-	for emoji, count := range obj.ReactionCount {
-		result = append(result, &generated.ReactionCount{
-			Emoji: emoji,
-			Count: count,
-		})
-	}
-
-	return result, nil
-}
-
-// Mutation returns generated.MutationResolver implementation.
-func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
-
-// Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
-
-// Subscription returns generated.SubscriptionResolver implementation.
-func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
-
-// Message returns generated.MessageResolver implementation.
-func (r *Resolver) Message() generated.MessageResolver { return &messageResolver{r} }
-
-// SendMessageInput returns generated.SendMessageInputResolver implementation.
-func (r *Resolver) SendMessageInput() generated.SendMessageInputResolver { return &sendMessageInputResolver{r} }
-
-// UpdateMessageInput returns generated.UpdateMessageInputResolver implementation.
-func (r *Resolver) UpdateMessageInput() generated.UpdateMessageInputResolver { return &updateMessageInputResolver{r} }
-
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
-type subscriptionResolver struct{ *Resolver }
-type messageResolver struct{ *Resolver }
-type sendMessageInputResolver struct{ *Resolver }
-type updateMessageInputResolver struct{ *Resolver }
 
 // Input resolvers for metadata handling
 func (r *sendMessageInputResolver) Metadata(ctx context.Context, obj *models.CreateMessageInput, data *generated.MessageMetadataInput) error {
@@ -425,6 +511,7 @@ func (r *sendMessageInputResolver) Metadata(ctx context.Context, obj *models.Cre
 	return nil
 }
 
+// Metadata is the resolver for the metadata field.
 func (r *updateMessageInputResolver) Metadata(ctx context.Context, obj *models.UpdateMessageInput, data *generated.MessageMetadataInput) error {
 	if data == nil {
 		return nil
@@ -449,3 +536,32 @@ func (r *updateMessageInputResolver) Metadata(ctx context.Context, obj *models.U
 	obj.Metadata = metadata
 	return nil
 }
+
+// Message returns generated.MessageResolver implementation.
+func (r *Resolver) Message() generated.MessageResolver { return &messageResolver{r} }
+
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
+// Query returns generated.QueryResolver implementation.
+func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
+
+// Subscription returns generated.SubscriptionResolver implementation.
+func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
+
+// SendMessageInput returns generated.SendMessageInputResolver implementation.
+func (r *Resolver) SendMessageInput() generated.SendMessageInputResolver {
+	return &sendMessageInputResolver{r}
+}
+
+// UpdateMessageInput returns generated.UpdateMessageInputResolver implementation.
+func (r *Resolver) UpdateMessageInput() generated.UpdateMessageInputResolver {
+	return &updateMessageInputResolver{r}
+}
+
+type messageResolver struct{ *Resolver }
+type mutationResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }
+type sendMessageInputResolver struct{ *Resolver }
+type updateMessageInputResolver struct{ *Resolver }

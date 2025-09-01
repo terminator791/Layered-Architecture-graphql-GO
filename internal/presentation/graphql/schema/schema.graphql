@@ -120,6 +120,8 @@ type Message {
   roomId: ID
   messageType: MessageType!
   replyToId: ID
+  threadId: ID # Threading support
+  isThreadRoot: Boolean! # Is this the start of a thread
   editedAt: Time
   deletedAt: Time
   metadata: MessageMetadata
@@ -129,6 +131,8 @@ type Message {
   replyTo: Message
   reactions: [MessageReaction!]!
   reactionCount: [ReactionCount!]!
+  threadReplies: [Message!]! # Replies in this thread
+  threadCount: Int! # Number of replies in thread
 }
 
 enum MessageType {
@@ -222,6 +226,17 @@ input StopTypingInput {
   roomId: ID!
 }
 
+# Threading input types
+input StartThreadInput {
+  messageId: ID!
+  text: String!
+}
+
+input ReplyToThreadInput {
+  threadId: ID!
+  text: String!
+}
+
 type Query {
   # User queries
   me: User
@@ -238,6 +253,15 @@ type Query {
   messagesByRoom(roomId: ID!, limit: Int, offset: Int): [Message!]!
   message(id: ID!): Message
   searchMessages(query: String!, roomId: ID, limit: Int, offset: Int): [Message!]!
+  
+  # Threading queries
+  threadReplies(threadId: ID!, limit: Int, offset: Int): [Message!]!
+  
+  # Reaction queries
+  messageReactions(messageId: ID!): [MessageReaction!]!
+  
+  # Typing indicator queries
+  typingUsers(roomId: ID!): [TypingIndicator!]!
 }
 
 type Mutation {
@@ -266,6 +290,10 @@ type Mutation {
   updateMessage(input: UpdateMessageInput!): Message!
   deleteMessage(messageId: ID!): Boolean!
   
+  # Threading operations
+  startThread(input: StartThreadInput!): Message!
+  replyToThread(input: ReplyToThreadInput!): Message!
+  
   # Message reactions
   addReaction(input: AddReactionInput!): MessageReaction!
   removeReaction(input: RemoveReactionInput!): Boolean!
@@ -285,6 +313,10 @@ type Subscription {
   messageDeleted(roomId: ID!): Message!
   reactionAdded(roomId: ID!): MessageReaction!
   reactionRemoved(roomId: ID!): MessageReaction!
+  
+  # Threading subscriptions
+  threadStarted(roomId: ID!): Message!
+  threadReplyAdded(threadId: ID!): Message!
   
   # User presence
   userStatusChanged(roomId: ID!): User!
