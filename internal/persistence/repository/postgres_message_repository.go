@@ -334,3 +334,79 @@ func (r *postgresMessageRepository) GetReactionCounts(ctx context.Context, messa
 
 	return counts, rows.Err()
 }
+// Thread operations
+
+func (r *postgresMessageRepository) StartThread(ctx context.Context, messageID, userID string) (*models.Message, error) {
+// This method doesn't create a new message, it just marks an existing message as thread root
+// The actual thread reply is created via CreateMessage with ThreadID set
+if err := r.MarkAsThreadRoot(ctx, messageID); err != nil {
+return nil, fmt.Errorf("failed to mark as thread root: %w", err)
+}
+
+// Return the original message that is now marked as thread root
+return r.GetMessageByID(ctx, messageID)
+}
+
+func (r *postgresMessageRepository) GetThreadReplies(ctx context.Context, threadID string, limit, offset int) ([]*models.Message, error) {
+query := `
+SELECT id, room, "user", text, user_id, room_id, message_type, reply_to_id, 
+       thread_id, is_thread_root, edited_at, deleted_at, created_at
+FROM messages 
+WHERE thread_id = $1 AND deleted_at IS NULL
+ORDER BY created_at ASC
+LIMIT $2 OFFSET $3`
+
+rows, err := r.db.QueryxContext(ctx, query, threadID, limit, offset)
+if err != nil {
+return nil, fmt.Errorf("failed to query thread replies: %w", err)
+}
+defer rows.Close()
+
+var messages []*models.Message
+for rows.Next() {
+var message models.Message
+if err := rows.StructScan(&message); err != nil {
+return nil, fmt.Errorf("failed to scan thread reply: %w", err)
+}
+messages = append(messages, &message)
+}
+
+return messages, rows.Err()
+}
+
+func (r *postgresMessageRepository) GetThreadCount(ctx context.Context, threadID string) (int, error) {
+query := `
+SELECT COUNT(*) 
+FROM messages 
+WHERE thread_id = $1 AND deleted_at IS NULL`
+
+var count int
+if err := r.db.QueryRowxContext(ctx, query, threadID).Scan(&count); err != nil {
+return 0, fmt.Errorf("failed to get thread count: %w", err)
+}
+
+return count, nil
+}
+
+func (r *postgresMessageRepository) MarkAsThreadRoot(ctx context.Context, messageID string) error {
+query := `
+UPDATE messages 
+SET is_thread_root = true 
+WHERE id = $1 AND deleted_at IS NULL`
+
+result, err := r.db.ExecContext(ctx, query, messageID)
+if err != nil {
+return fmt.Errorf("failed to mark message as thread root: %w", err)
+}
+
+rowsAffected, err := result.RowsAffected()
+if err != nil {
+return fmt.Errorf("failed to get affected rows: %w", err)
+}
+
+if rowsAffected == 0 {
+return fmt.Errorf("message not found or already deleted")
+}
+
+return nil
+}

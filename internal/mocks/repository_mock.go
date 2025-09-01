@@ -94,6 +94,32 @@ func (m *MockMessageRepository) GetReactionCounts(ctx context.Context, messageID
 	return args.Get(0).(map[string]int), args.Error(1)
 }
 
+func (m *MockMessageRepository) StartThread(ctx context.Context, messageID, userID string) (*models.Message, error) {
+	args := m.Called(ctx, messageID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Message), args.Error(1)
+}
+
+func (m *MockMessageRepository) GetThreadReplies(ctx context.Context, threadID string, limit, offset int) ([]*models.Message, error) {
+	args := m.Called(ctx, threadID, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.Message), args.Error(1)
+}
+
+func (m *MockMessageRepository) GetThreadCount(ctx context.Context, threadID string) (int, error) {
+	args := m.Called(ctx, threadID)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockMessageRepository) MarkAsThreadRoot(ctx context.Context, messageID string) error {
+	args := m.Called(ctx, messageID)
+	return args.Error(0)
+}
+
 // MockUserRepository is a mock implementation of repository.UserRepository
 type MockUserRepository struct {
 	mock.Mock

@@ -25,6 +25,8 @@ type Message struct {
 	RoomID      *string      `json:"roomId" db:"room_id"`
 	MessageType MessageType  `json:"messageType" db:"message_type"`
 	ReplyToID   *string      `json:"replyToId" db:"reply_to_id"`
+	ThreadID    *string      `json:"threadId" db:"thread_id"`      // Threading support
+	IsThreadRoot bool        `json:"isThreadRoot" db:"is_thread_root"` // Is this the start of a thread
 	EditedAt    *time.Time   `json:"editedAt" db:"edited_at"`
 	DeletedAt   *time.Time   `json:"deletedAt" db:"deleted_at"`
 	Metadata    *MessageMetadata `json:"metadata"`
@@ -36,6 +38,8 @@ type Message struct {
 	ReplyTo       *Message           `json:"replyTo"`
 	Reactions     []*MessageReaction `json:"reactions"`
 	ReactionCount map[string]int     `json:"reactionCount"`
+	ThreadReplies []*Message         `json:"threadReplies"`    // Replies in this thread
+	ThreadCount   int                `json:"threadCount"`      // Number of replies in thread
 }
 
 // MessageMetadata contains type-specific metadata for messages
@@ -118,6 +122,27 @@ type StartTypingInput struct {
 // StopTypingInput represents the input for stopping typing indicator
 type StopTypingInput struct {
 	RoomID string `json:"roomId"`
+}
+
+// Thread-related input types
+
+// StartThreadInput represents the input for starting a new thread from a message
+type StartThreadInput struct {
+	MessageID string `json:"messageId"`
+	Text      string `json:"text"`
+}
+
+// ReplyToThreadInput represents the input for replying to a thread
+type ReplyToThreadInput struct {
+	ThreadID string `json:"threadId"`
+	Text     string `json:"text"`
+}
+
+// GetThreadRepliesInput represents the input for getting thread replies
+type GetThreadRepliesInput struct {
+	ThreadID string `json:"threadId"`
+	Limit    *int   `json:"limit"`
+	Offset   *int   `json:"offset"`
 }
 
 // Custom JSON marshaling for MessageMetadata to handle JSONB in database
