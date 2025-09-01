@@ -16,10 +16,13 @@ func TestMessageService_CreateMessage_Success(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 	mockRepo := &mocks.MockMessageRepository{}
+	mockRoomRepo := &mocks.MockRoomRepository{}
+	mockUserRepo := &mocks.MockUserRepository{}
+	mockTypingRepo := &mocks.MockTypingRepository{}
 	mockPublisher := &mocks.MockPublisher{}
 	mockSubscriber := &mocks.MockSubscriber{}
 	
-	service := NewMessageService(mockRepo, mockPublisher, mockSubscriber)
+	service := NewMessageService(mockRepo, mockRoomRepo, mockUserRepo, mockTypingRepo, mockPublisher, mockSubscriber)
 	
 	input := &models.CreateMessageInput{
 		Room: "general",
@@ -58,10 +61,13 @@ func TestMessageService_CreateMessage_RepositoryError(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 	mockRepo := &mocks.MockMessageRepository{}
+	mockRoomRepo := &mocks.MockRoomRepository{}
+	mockUserRepo := &mocks.MockUserRepository{}
+	mockTypingRepo := &mocks.MockTypingRepository{}
 	mockPublisher := &mocks.MockPublisher{}
 	mockSubscriber := &mocks.MockSubscriber{}
 	
-	service := NewMessageService(mockRepo, mockPublisher, mockSubscriber)
+	service := NewMessageService(mockRepo, mockRoomRepo, mockUserRepo, mockTypingRepo, mockPublisher, mockSubscriber)
 	
 	input := &models.CreateMessageInput{
 		Room: "general",
@@ -91,10 +97,13 @@ func TestMessageService_CreateMessage_PublisherError(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 	mockRepo := &mocks.MockMessageRepository{}
+	mockRoomRepo := &mocks.MockRoomRepository{}
+	mockUserRepo := &mocks.MockUserRepository{}
+	mockTypingRepo := &mocks.MockTypingRepository{}
 	mockPublisher := &mocks.MockPublisher{}
 	mockSubscriber := &mocks.MockSubscriber{}
 	
-	service := NewMessageService(mockRepo, mockPublisher, mockSubscriber)
+	service := NewMessageService(mockRepo, mockRoomRepo, mockUserRepo, mockTypingRepo, mockPublisher, mockSubscriber)
 	
 	input := &models.CreateMessageInput{
 		Room: "general",
@@ -133,10 +142,13 @@ func TestMessageService_CreateMessage_ValidationErrors(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 	mockRepo := &mocks.MockMessageRepository{}
+	mockRoomRepo := &mocks.MockRoomRepository{}
+	mockUserRepo := &mocks.MockUserRepository{}
+	mockTypingRepo := &mocks.MockTypingRepository{}
 	mockPublisher := &mocks.MockPublisher{}
 	mockSubscriber := &mocks.MockSubscriber{}
 	
-	service := NewMessageService(mockRepo, mockPublisher, mockSubscriber)
+	service := NewMessageService(mockRepo, mockRoomRepo, mockUserRepo, mockTypingRepo, mockPublisher, mockSubscriber)
 	
 	testCases := []struct {
 		name        string
@@ -225,10 +237,13 @@ func TestMessageService_GetMessagesByRoom_Success(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 	mockRepo := &mocks.MockMessageRepository{}
+	mockRoomRepo := &mocks.MockRoomRepository{}
+	mockUserRepo := &mocks.MockUserRepository{}
+	mockTypingRepo := &mocks.MockTypingRepository{}
 	mockPublisher := &mocks.MockPublisher{}
 	mockSubscriber := &mocks.MockSubscriber{}
 	
-	service := NewMessageService(mockRepo, mockPublisher, mockSubscriber)
+	service := NewMessageService(mockRepo, mockRoomRepo, mockUserRepo, mockTypingRepo, mockPublisher, mockSubscriber)
 	
 	room := "general"
 	expectedMessages := []*models.Message{
@@ -268,10 +283,13 @@ func TestMessageService_GetMessagesByRoom_EmptyRoom(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 	mockRepo := &mocks.MockMessageRepository{}
+	mockRoomRepo := &mocks.MockRoomRepository{}
+	mockUserRepo := &mocks.MockUserRepository{}
+	mockTypingRepo := &mocks.MockTypingRepository{}
 	mockPublisher := &mocks.MockPublisher{}
 	mockSubscriber := &mocks.MockSubscriber{}
 	
-	service := NewMessageService(mockRepo, mockPublisher, mockSubscriber)
+	service := NewMessageService(mockRepo, mockRoomRepo, mockUserRepo, mockTypingRepo, mockPublisher, mockSubscriber)
 	
 	// Act
 	result, err := service.GetMessagesByRoom(ctx, "")
@@ -288,10 +306,13 @@ func TestMessageService_GetMessagesByRoom_RepositoryError(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 	mockRepo := &mocks.MockMessageRepository{}
+	mockRoomRepo := &mocks.MockRoomRepository{}
+	mockUserRepo := &mocks.MockUserRepository{}
+	mockTypingRepo := &mocks.MockTypingRepository{}
 	mockPublisher := &mocks.MockPublisher{}
 	mockSubscriber := &mocks.MockSubscriber{}
 	
-	service := NewMessageService(mockRepo, mockPublisher, mockSubscriber)
+	service := NewMessageService(mockRepo, mockRoomRepo, mockUserRepo, mockTypingRepo, mockPublisher, mockSubscriber)
 	
 	room := "general"
 	expectedError := fmt.Errorf("database connection error")
@@ -314,10 +335,13 @@ func TestMessageService_SubscribeToRoom_Success(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 	mockRepo := &mocks.MockMessageRepository{}
+	mockRoomRepo := &mocks.MockRoomRepository{}
+	mockUserRepo := &mocks.MockUserRepository{}
+	mockTypingRepo := &mocks.MockTypingRepository{}
 	mockPublisher := &mocks.MockPublisher{}
 	mockSubscriber := &mocks.MockSubscriber{}
 	
-	service := NewMessageService(mockRepo, mockPublisher, mockSubscriber)
+	service := NewMessageService(mockRepo, mockRoomRepo, mockUserRepo, mockTypingRepo, mockPublisher, mockSubscriber)
 	
 	room := "general"
 	messageCh := make(chan *models.Message)
@@ -339,10 +363,13 @@ func TestMessageService_SubscribeToRoom_EmptyRoom(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 	mockRepo := &mocks.MockMessageRepository{}
+	mockRoomRepo := &mocks.MockRoomRepository{}
+	mockUserRepo := &mocks.MockUserRepository{}
+	mockTypingRepo := &mocks.MockTypingRepository{}
 	mockPublisher := &mocks.MockPublisher{}
 	mockSubscriber := &mocks.MockSubscriber{}
 	
-	service := NewMessageService(mockRepo, mockPublisher, mockSubscriber)
+	service := NewMessageService(mockRepo, mockRoomRepo, mockUserRepo, mockTypingRepo, mockPublisher, mockSubscriber)
 	
 	// Act
 	result, err := service.SubscribeToRoom(ctx, "")
@@ -359,10 +386,13 @@ func TestMessageService_SubscribeToRoom_SubscriberError(t *testing.T) {
 	// Arrange
 	ctx := context.Background()
 	mockRepo := &mocks.MockMessageRepository{}
+	mockRoomRepo := &mocks.MockRoomRepository{}
+	mockUserRepo := &mocks.MockUserRepository{}
+	mockTypingRepo := &mocks.MockTypingRepository{}
 	mockPublisher := &mocks.MockPublisher{}
 	mockSubscriber := &mocks.MockSubscriber{}
 	
-	service := NewMessageService(mockRepo, mockPublisher, mockSubscriber)
+	service := NewMessageService(mockRepo, mockRoomRepo, mockUserRepo, mockTypingRepo, mockPublisher, mockSubscriber)
 	
 	room := "general"
 	expectedError := fmt.Errorf("redis subscription error")

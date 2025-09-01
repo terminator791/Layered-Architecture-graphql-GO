@@ -6,7 +6,6 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/domain/models"
 	"github.com/terminator791/Layered-Architecture-graphql-GO/internal/presentation/graphql/generated"
@@ -45,157 +44,317 @@ func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 }
 
 func (r *mutationResolver) UpdateUser(ctx context.Context, input models.UpdateUserInput) (*models.User, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.UserService.UpdateUser(ctx, userID, &input)
 }
 
 func (r *mutationResolver) UpdateUserStatus(ctx context.Context, status models.UserStatus) (*models.User, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.UserService.UpdateUserStatus(ctx, userID, status)
 }
 
 func (r *mutationResolver) DeleteUser(ctx context.Context) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, r.UserService.DeleteUser(ctx, userID)
 }
 
 func (r *mutationResolver) CreateRoom(ctx context.Context, input models.CreateRoomInput) (*models.Room, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.RoomService.CreateRoom(ctx, userID, &input)
 }
 
 func (r *mutationResolver) UpdateRoom(ctx context.Context, roomID string, input models.UpdateRoomInput) (*models.Room, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.RoomService.UpdateRoom(ctx, userID, roomID, &input)
 }
 
 func (r *mutationResolver) DeleteRoom(ctx context.Context, roomID string) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, r.RoomService.DeleteRoom(ctx, userID, roomID)
 }
 
 func (r *mutationResolver) JoinRoom(ctx context.Context, input models.JoinRoomInput) (*models.RoomMember, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.RoomService.JoinRoom(ctx, userID, &input)
 }
 
 func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, r.RoomService.LeaveRoom(ctx, userID, roomID)
 }
 
 func (r *mutationResolver) UpdateRoomMember(ctx context.Context, input models.UpdateRoomMemberInput) (*models.RoomMember, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.RoomService.UpdateRoomMember(ctx, userID, &input)
 }
 
 func (r *mutationResolver) KickRoomMember(ctx context.Context, roomID string, userID string) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	currentUserID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, r.RoomService.KickRoomMember(ctx, currentUserID, roomID, userID)
 }
 
 func (r *mutationResolver) SendMessageToRoom(ctx context.Context, roomID string, text string, messageType *models.MessageType, replyToID *string, metadata *generated.MessageMetadataInput) (*models.Message, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert metadata if provided
+	var msgMetadata *models.MessageMetadata
+	if metadata != nil {
+		msgMetadata = &models.MessageMetadata{
+			ImageWidth:  metadata.ImageWidth,
+			ImageHeight: metadata.ImageHeight,
+			ImageURL:    metadata.ImageURL,
+			FileName:    metadata.FileName,
+			FileURL:     metadata.FileURL,
+			MimeType:    metadata.MimeType,
+			SystemType:  metadata.SystemType,
+		}
+		if metadata.FileSize != nil {
+			fileSize := int64(*metadata.FileSize)
+			msgMetadata.FileSize = &fileSize
+		}
+	}
+
+	return r.MessageService.SendMessageToRoom(ctx, userID, roomID, text, messageType, replyToID, msgMetadata)
 }
 
 func (r *mutationResolver) UpdateMessage(ctx context.Context, input models.UpdateMessageInput) (*models.Message, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.MessageService.UpdateMessage(ctx, userID, input.MessageID, &input)
 }
 
 func (r *mutationResolver) DeleteMessage(ctx context.Context, messageID string) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, r.MessageService.DeleteMessage(ctx, userID, messageID)
 }
 
 func (r *mutationResolver) AddReaction(ctx context.Context, input models.AddReactionInput) (*models.MessageReaction, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.MessageService.AddReaction(ctx, userID, &input)
 }
 
 func (r *mutationResolver) RemoveReaction(ctx context.Context, input models.RemoveReactionInput) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, r.MessageService.RemoveReaction(ctx, userID, &input)
 }
 
 func (r *mutationResolver) StartTyping(ctx context.Context, input models.StartTypingInput) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, r.MessageService.StartTyping(ctx, userID, &input)
 }
 
 func (r *mutationResolver) StopTyping(ctx context.Context, input models.StopTypingInput) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, r.MessageService.StopTyping(ctx, userID, &input)
 }
 
 // Placeholder query implementations
 func (r *queryResolver) Me(ctx context.Context) (*models.User, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.UserService.GetCurrentUser(ctx, userID)
 }
 
 func (r *queryResolver) User(ctx context.Context, id string) (*models.User, error) {
-	return nil, fmt.Errorf("not implemented")
+	return r.UserService.GetUserByID(ctx, id)
 }
 
 func (r *queryResolver) Users(ctx context.Context, limit *int, offset *int) ([]*models.User, error) {
-	return nil, fmt.Errorf("not implemented")
+	lim := 20
+	off := 0
+	if limit != nil {
+		lim = *limit
+	}
+	if offset != nil {
+		off = *offset
+	}
+	return r.UserService.ListUsers(ctx, lim, off)
 }
 
 func (r *queryResolver) Room(ctx context.Context, id string) (*models.Room, error) {
-	return nil, fmt.Errorf("not implemented")
+	return r.RoomService.GetRoomByID(ctx, id)
 }
 
 func (r *queryResolver) Rooms(ctx context.Context, limit *int, offset *int) ([]*models.Room, error) {
-	return nil, fmt.Errorf("not implemented")
+	lim := 20
+	off := 0
+	if limit != nil {
+		lim = *limit
+	}
+	if offset != nil {
+		off = *offset
+	}
+	return r.RoomService.ListRooms(ctx, lim, off)
 }
 
 func (r *queryResolver) MyRooms(ctx context.Context) ([]*models.Room, error) {
-	return nil, fmt.Errorf("not implemented")
+	userID, err := r.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.RoomService.GetUserRooms(ctx, userID)
 }
 
 func (r *queryResolver) MessagesByRoom(ctx context.Context, roomID string, limit *int, offset *int) ([]*models.Message, error) {
-	return nil, fmt.Errorf("not implemented")
+	lim := 50
+	off := 0
+	if limit != nil {
+		lim = *limit
+	}
+	if offset != nil {
+		off = *offset
+	}
+	return r.MessageService.GetMessagesByRoomID(ctx, roomID, lim, off)
 }
 
 func (r *queryResolver) Message(ctx context.Context, id string) (*models.Message, error) {
-	return nil, fmt.Errorf("not implemented")
+	return r.MessageService.GetMessageByID(ctx, id)
 }
 
 func (r *queryResolver) SearchMessages(ctx context.Context, query string, roomID *string, limit *int, offset *int) ([]*models.Message, error) {
-	return nil, fmt.Errorf("not implemented")
+	lim := 20
+	off := 0
+	if limit != nil {
+		lim = *limit
+	}
+	if offset != nil {
+		off = *offset
+	}
+	return r.MessageService.SearchMessages(ctx, query, roomID, lim, off)
 }
 
 // Placeholder subscription implementations
 func (r *subscriptionResolver) MessageAddedToRoom(ctx context.Context, roomID string) (<-chan *models.Message, error) {
-	return nil, fmt.Errorf("not implemented")
+	return r.MessageService.SubscribeToRoomMessages(ctx, roomID)
 }
 
 func (r *subscriptionResolver) MessageUpdated(ctx context.Context, roomID string) (<-chan *models.Message, error) {
-	return nil, fmt.Errorf("not implemented")
+	// For now, use the same channel as message added
+	// In a real implementation, you might want separate channels for different events
+	return r.MessageService.SubscribeToRoomMessages(ctx, roomID)
 }
 
 func (r *subscriptionResolver) MessageDeleted(ctx context.Context, roomID string) (<-chan *models.Message, error) {
-	return nil, fmt.Errorf("not implemented")
+	// For now, use the same channel as message added
+	return r.MessageService.SubscribeToRoomMessages(ctx, roomID)
 }
 
 func (r *subscriptionResolver) ReactionAdded(ctx context.Context, roomID string) (<-chan *models.MessageReaction, error) {
-	return nil, fmt.Errorf("not implemented")
+	return r.MessageService.SubscribeToRoomReactions(ctx, roomID)
 }
 
 func (r *subscriptionResolver) ReactionRemoved(ctx context.Context, roomID string) (<-chan *models.MessageReaction, error) {
-	return nil, fmt.Errorf("not implemented")
+	// For now, use the same channel as reaction added
+	return r.MessageService.SubscribeToRoomReactions(ctx, roomID)
 }
 
 func (r *subscriptionResolver) UserStatusChanged(ctx context.Context, roomID string) (<-chan *models.User, error) {
-	return nil, fmt.Errorf("not implemented")
+	// This would require additional Redis channels for user status
+	// For now, return a simple channel
+	userCh := make(chan *models.User)
+	close(userCh)
+	return userCh, nil
 }
 
 func (r *subscriptionResolver) TypingStarted(ctx context.Context, roomID string) (<-chan *models.TypingIndicator, error) {
-	return nil, fmt.Errorf("not implemented")
+	// This would require additional Redis channels for typing indicators
+	// For now, return a simple channel
+	typingCh := make(chan *models.TypingIndicator)
+	close(typingCh)
+	return typingCh, nil
 }
 
 func (r *subscriptionResolver) TypingStopped(ctx context.Context, roomID string) (<-chan *models.TypingIndicator, error) {
-	return nil, fmt.Errorf("not implemented")
+	// This would require additional Redis channels for typing indicators
+	// For now, return a simple channel
+	typingCh := make(chan *models.TypingIndicator)
+	close(typingCh)
+	return typingCh, nil
 }
 
 func (r *subscriptionResolver) RoomMemberJoined(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
-	return nil, fmt.Errorf("not implemented")
+	// This would require additional Redis channels for room events
+	// For now, return a simple channel
+	memberCh := make(chan *models.RoomMember)
+	close(memberCh)
+	return memberCh, nil
 }
 
 func (r *subscriptionResolver) RoomMemberLeft(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
-	return nil, fmt.Errorf("not implemented")
+	// This would require additional Redis channels for room events
+	// For now, return a simple channel
+	memberCh := make(chan *models.RoomMember)
+	close(memberCh)
+	return memberCh, nil
 }
 
 func (r *subscriptionResolver) RoomMemberUpdated(ctx context.Context, roomID string) (<-chan *models.RoomMember, error) {
-	return nil, fmt.Errorf("not implemented")
+	// This would require additional Redis channels for room events
+	// For now, return a simple channel
+	memberCh := make(chan *models.RoomMember)
+	close(memberCh)
+	return memberCh, nil
 }
 
 func (r *subscriptionResolver) RoomUpdated(ctx context.Context, roomID string) (<-chan *models.Room, error) {
-	return nil, fmt.Errorf("not implemented")
+	// This would require additional Redis channels for room events
+	// For now, return a simple channel
+	roomCh := make(chan *models.Room)
+	close(roomCh)
+	return roomCh, nil
 }
 
 // Message field resolvers

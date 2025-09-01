@@ -86,6 +86,7 @@ func main() {
 		MessageService: messageService,
 		UserService:    userService,
 		RoomService:    roomService,
+		JWTService:     jwtService,
 	}
 
 	// Create GraphQL server
